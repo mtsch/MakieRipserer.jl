@@ -1,0 +1,10 @@
+name = "MakieRipserer"
+uuid = "7c4fdfac-7811-488d-9cb9-c88bc08554dd"
+authors = ["mtsch <matijacufar@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+AbstractPlotting = "537997a7-5e4e-5d89-9595-2241ea00577e"
+ColorSchemes = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
+PersistenceDiagrams = "90b4794c-894b-4756-a0f8-5efeb5ddf7ae"
+Ripserer = "aa79e827-bd0b-42a8-9f10-2b302677a641"
