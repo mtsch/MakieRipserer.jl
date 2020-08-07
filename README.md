@@ -3,7 +3,7 @@
 Experimental [Makie](https://github.com/JuliaPlots/Makie.jl) support for
 [Ripserer.jl](https://github.com/mtsch/Ripserer.jl/).
 
-# API
+## API
 
 ```
 plot_diagram(diagrams; kwargs...)
@@ -58,6 +58,8 @@ Keyword args:
 ```
 MakieRipserer.app(points, filtration=Rips(points))
 ```
+
+View filtration, diagram and barcode in interactive app.
 
 ![](docs/src/assets/torus.gif)
 ![](docs/src/assets/cat.gif)
