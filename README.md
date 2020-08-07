@@ -15,7 +15,7 @@ Plot the persistence diagram or barcode. Only collections of diagrams currently 
 Keyword args:
 
 * `infinity`: set the position of infinity line.
-* `palette::symbol`: set a palette from
+* `palette`: set a palette from
   [ColorSchemes.jl](https://github.com/juliagraphics/colorschemes.jl). defaults to `:tab10`.
 * `time::Observable`: optional. Display current time on plot.
 
@@ -33,7 +33,7 @@ Keyword args:
 
 * `pointcolor`, `edgecolor`, `trianglecolor`: set colors of drawn simplices. Can be an
   `Integer` (position in palette) or color.
-* `palette::Symbol`: set a palette from
+* `palette`: set a palette from
   [ColorSchemes.jl](https://github.com/JuliaGraphics/ColorSchemes.jl). Defaults to `:tab10`.
 * `shading`: defaults to `false`.
 * `transparency`: defaults to `true`.
@@ -50,7 +50,7 @@ Keyword args:
 
 * `pointcolor`, `edgecolor`, `trianglecolor`: set colors of drawn simplices. Can be an
   `Integer` (position in palette) or color.
-* `palette::symbol`: set a palette from
+* `palette`: set a palette from
   [ColorSchemes.jl](https://github.com/juliagraphics/colorschemes.jl). defaults to `:tab10`.
 * `shading`: defaults to `true`.
 * `transparency`: defaults to `true`.
