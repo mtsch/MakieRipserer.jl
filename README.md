@@ -19,6 +19,9 @@ Keyword args:
   [ColorSchemes.jl](https://github.com/juliagraphics/colorschemes.jl). defaults to `:tab10`.
 * `time::Observable`: optional. Display current time on plot.
 
+![](docs/src/assets/diagram.png)
+![](docs/src/assets/barcode.png)
+
 ```
 plot(simplices, points; kwargs...)
 ```
@@ -34,6 +37,8 @@ Keyword args:
   [ColorSchemes.jl](https://github.com/JuliaGraphics/ColorSchemes.jl). Defaults to `:tab10`.
 * `shading`: defaults to `false`.
 * `transparency`: defaults to `true`.
+
+![](docs/src/assets/cocycle.png)
 
 ```
 plot(::AbstractRipsFiltration, points; time, kwargs...)
@@ -54,6 +59,5 @@ Keyword args:
 MakieRipserer.app(points, filtration=Rips(points))
 ```
 
-![](/docs/src/assets/torus.gif)
-
-![](/docs/src/assets/cat.gif)
+![](docs/src/assets/torus.gif)
+![](docs/src/assets/cat.gif)
