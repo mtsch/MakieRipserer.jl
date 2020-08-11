@@ -10,8 +10,6 @@ using Ripserer:
     AbstractSimplex, AbstractFiltration, AbstractRipsFiltration, AbstractChainElement
 
 using PersistenceDiagrams
-using PersistenceDiagrams:
-    AbstractInterval, RepresentativeInterval
 
 export plot_diagram, plot_barcode
 

@@ -52,7 +52,7 @@ end
 function collect_points(points, chain::AbstractVector{<:AbstractChainElement})
     return collect_points(points, simplex.(chain))
 end
-function collect_points(points, interval::RepresentativeInterval)
+function collect_points(points, interval::PersistenceInterval)
     return collect_points(points, representative(interval))
 end
 function draw_chain(p)
@@ -76,7 +76,7 @@ function AbstractPlotting.default_theme(
         Type{<:Plot(AbstractSimplex, AbstractVector)},
         Type{<:Plot(AbstractVector{<:AbstractSimplex}, AbstractVector)},
         Type{<:Plot(AbstractVector{<:AbstractChainElement}, AbstractVector)},
-        Type{<:Plot(RepresentativeInterval, AbstractVector)},
+        Type{<:Plot(PersistenceInterval, AbstractVector)},
     }
 )
     return Theme(
@@ -97,6 +97,6 @@ end
 function AbstractPlotting.plot!(p::Plot(AbstractVector{<:AbstractChainElement}, AbstractVector))
     draw_chain(p)
 end
-function AbstractPlotting.plot!(p::Plot(RepresentativeInterval, AbstractVector))
+function AbstractPlotting.plot!(p::Plot(PersistenceInterval, AbstractVector))
     draw_chain(p)
 end
