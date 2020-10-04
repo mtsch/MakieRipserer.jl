@@ -1,9 +1,9 @@
 module MakieRipserer
 
 using AbstractPlotting
-using ColorSchemes
 using IterTools
 using PersistenceDiagrams
+using PlotUtils
 using Ripserer
 
 using AbstractPlotting:
@@ -13,13 +13,13 @@ using Ripserer:
 
 export plot_barcode, plot_diagram
 
-const DEFAULT_PALETTE = :tab10
+const DEFAULT_PALETTE = :default
 
 # This allows us to provide either color names or integers for colors.
 function get_color(p, name)
     lift(p[name], p[:palette]) do color, scheme
         if color isa Integer
-            colorschemes[scheme][color]
+            PlotUtils.get_colorscheme(scheme)[color]
         else
             color
         end

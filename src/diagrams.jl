@@ -51,7 +51,7 @@ function plot_diagram!(
     palette=DEFAULT_PALETTE,
     time=Observable(nothing),
 )
-    cscheme = colorschemes[palette]
+    cscheme = PlotUtils.get_colorscheme(palette)
     lims = @lift PersistenceDiagrams.limits(diags, $infinity)
     t_lo, t_hi, inf_val = to_value(lims)
     infinity = @lift $lims[3]
@@ -135,7 +135,7 @@ function plot_barcode!(
     linewidth=3,
     time=Observable(nothing),
 )
-    cscheme = colorschemes[palette]
+    cscheme = PlotUtils.get_colorscheme(palette)
     lims = @lift PersistenceDiagrams.limits(diags, $infinity)
     t_lo, t_hi, inf_val = to_value(lims)
     infinity = @lift $lims[3]

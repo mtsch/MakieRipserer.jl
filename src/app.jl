@@ -10,6 +10,7 @@ function app(
 )
     @info "computing diagrams"
     diagram = ripserer(filtration; progress=true, ripserer_kwargs...)
+    intervals = collect(Iterators.flatten(diagram[2:end]))
 
     outer_padding = 20
     scene, layout = layoutscene(outer_padding; resolution, backgroundcolor)
