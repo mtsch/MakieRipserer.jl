@@ -1,102 +1,106 @@
-struct DummyFiltration <: AbstractFiltration{Int, Int} end
-
-Ripserer.simplex_type(::Type{<:DummyFiltration}, D) = Simplex{D, Int, Int}
-function Ripserer.unsafe_simplex(
-    ::Type{<:AbstractSimplex{D}}, ::DummyFiltration, vertices, sign=1
-) where D
-    if sign == 1
-        Simplex{D}(vertices, 1)
-    else
-        -Simplex{D}(vertices, 1)
-    end
-end
-
-function collect_points!(ps, es, Δs, points, sx::AbstractSimplex{0})
-    append!(ps, points[sx]), es, Δs
-end
-function collect_points!(ps, es, Δs, points, sx::AbstractSimplex{1})
-    append!(ps, points[sx]), append!(es, points[sx]), Δs
-end
-@inline function collect_points!(ps, es, Δs, points, sx::AbstractSimplex{2})
-    for σ in Ripserer.boundary(DummyFiltration(), sx)
-        collect_points!(ps, es, Δs, points, σ)
-    end
-    return ps, es, append!(Δs, view(points, sx))
-end
-@inline function collect_points!(ps, es, Δs, points, sx::AbstractSimplex{D}) where D
-    for σ in Ripserer.boundary(DummyFiltration(), sx)
-        collect_points!(ps, es, Δs, points, σ)
-    end
-    return ps, es, Δs
-end
-function collect_points(points, sx::AbstractSimplex)
-    vertices, edges, triangles = collect_points!(
-        eltype(points)[], eltype(points)[], eltype(points)[], points, sx
-    )
-    isempty(edges) && push!(edges, points[1])
-    isempty(triangles) && push!(edges, points[1])
-    return vertices, edges, triangles
-end
-function collect_points(points, sxs)
-    edges = eltype(points)[]
-    triangles = eltype(points)[]
-    vertices = eltype(points)[]
+function _plottable(sxs::AbstractVector{<:AbstractSimplex}, data, ::Val{D}) where D
+    result = NTuple{D, eltype(data)}[]
     for sx in sxs
-        collect_points!(vertices, edges, triangles, points, sx)
+        for vs in IterTools.subsets(vertices(sx), Val(D))
+            push!(result, getindex.(Ref(data), vs))
+        end
     end
-    # ugly hack
-    isempty(edges) && push!(edges, points[1])
-    isempty(triangles) && push!(triangles, points[1])
-    return vertices, edges, triangles
+    unique!(result)
+    return collect(Iterators.flatten(result))
 end
-function collect_points(points, chain::AbstractVector{<:AbstractChainElement})
-    return collect_points(points, simplex.(chain))
+
+# This code is generated to make types specific enough.
+# Using Union{Scatter, LineSegments, Mesh} does not work.
+for (type, n) in ((:Scatter, 1), (:LineSegments, 2), (:Mesh, 3))
+    @eval begin
+        function AbstractPlotting.convert_arguments(
+            ::Type{T}, sx::AbstractSimplex, data::AbstractVector
+        ) where T<:$type
+            return convert_arguments(T, [sx], data)
+        end
+    end
+
+    @eval begin
+        function AbstractPlotting.convert_arguments(
+            ::Type{T}, chain::AbstractVector{<:AbstractChainElement}, data::AbstractVector
+        ) where T<:$type
+            return convert_arguments(T, simplex.(chain), data)
+        end
+    end
+
+    if n ≤ 2
+        @eval begin
+        end
+    end
 end
-function collect_points(points, interval::PersistenceInterval)
-    return collect_points(points, representative(interval))
+
+function AbstractPlotting.convert_arguments(
+    ::Type{T}, chain::AbstractVector{<:AbstractSimplex}, data::AbstractVector
+) where T<:Scatter
+    _data, = convert_arguments(PointBased(), data)
+    points = unique!(collect(Iterators.flatten(_data[sx] for sx in chain)))
+    return convert_arguments(T, points)
 end
-function draw_chain(p)
-    vertices_edges_triangles = lift(collect_points, p[2], p[1])
-    vertices = @lift $(vertices_edges_triangles)[1]
-    edges = @lift $(vertices_edges_triangles)[2]
-    triangles = @lift $(vertices_edges_triangles)[3]
+function AbstractPlotting.convert_arguments(
+    ::Type{T}, chain::AbstractVector{<:AbstractSimplex}, data::AbstractVector
+) where T<:LineSegments
+    _data, = convert_arguments(PointBased(), data)
+    segs = NTuple{2, eltype(data)}[]
+    for sx in chain
+        for vs in IterTools.subsets(vertices(sx), Val(2))
+            push!(segs, getindex.(Ref(data), vs))
+        end
+    end
+    unique!(segs)
+    return convert_arguments(T, collect(Iterators.flatten(segs)))
+end
+function AbstractPlotting.convert_arguments(
+    ::Type{T}, chain::AbstractVector{<:AbstractSimplex}, data::AbstractVector
+) where T<:Mesh
+    _data, = convert_arguments(PointBased(), data)
+    tris = NTuple{3, Int}[]
+    for sx in chain
+        for vs in IterTools.subsets(vertices(sx), Val(3))
+            push!(tris, vs)
+        end
+    end
+    faces = transpose(reshape(reinterpret(Int, tris), (3, length(tris))))
+    return convert_arguments(T, data, faces)
+end
+
+@recipe(ChainPlot, chain, data) do scene
+    return Theme(;
+        all_points = true,
+        CHAIN_ARGS...
+    )
+end
+
+function AbstractPlotting.plot!(p::ChainPlot)
     mesh!(
-        p, triangles;
+        p, p[:chain], p[:data];
         color=get_color(p, :trianglecolor),
         shading=p[:shading],
-        transparency=p[:transparency],
+        transparency=p[:transparency]
     )
-    linesegments!(p, edges, color=get_color(p, :edgecolor), shading=p[:shading])
-    scatter!(p, p[2], color=get_color(p, :pointcolor), markersize=1)
-    #TODO vertices/0-homology
+    linesegments!(
+        p, p[:chain], p[:data];
+        color=get_color(p, :edgecolor),
+        shading=p[:shading],
+        linewidth=p[:linewidth],
+    )
+    scatter!(
+        p, p[:chain], p[:data];
+        color=get_color(p, :pointcolor),
+        markersize=p[:markersize],
+    )
 end
 
-function AbstractPlotting.default_theme(
-    scene::SceneLike, ::Union{
-        Type{<:Plot(AbstractSimplex, AbstractVector)},
-        Type{<:Plot(AbstractVector{<:AbstractSimplex}, AbstractVector)},
-        Type{<:Plot(AbstractVector{<:AbstractChainElement}, AbstractVector)},
-        Type{<:Plot(PersistenceInterval, AbstractVector)},
-    }
-)
-    return Theme(
-        pointcolor = 1,
-        edgecolor = :black,
-        trianglecolor = 2,
-        shading = false,
-        transparency = true,
-        palette = DEFAULT_PALETTE,
-    )
+function AbstractPlotting.plottype(::AbstractSimplex, ::AbstractVector)
+    return ChainPlot
 end
-function AbstractPlotting.plot!(p::Plot(AbstractSimplex, AbstractVector))
-    draw_chain(p)
+function AbstractPlotting.plottype(::AbstractVector{<:AbstractSimplex}, ::AbstractVector)
+    return ChainPlot
 end
-function AbstractPlotting.plot!(p::Plot(AbstractVector{<:AbstractSimplex}, AbstractVector))
-    draw_chain(p)
-end
-function AbstractPlotting.plot!(p::Plot(AbstractVector{<:AbstractChainElement}, AbstractVector))
-    draw_chain(p)
-end
-function AbstractPlotting.plot!(p::Plot(PersistenceInterval, AbstractVector))
-    draw_chain(p)
+function AbstractPlotting.plottype(::AbstractVector{<:AbstractChainElement}, ::AbstractVector)
+    return ChainPlot
 end
