@@ -10,6 +10,7 @@ function app(
 )
     @info "computing diagrams"
     diagram = ripserer(filtration; progress=true, ripserer_kwargs...)
+    intervals = collect(Iterators.flatten(diagram[2:end]))
 
     outer_padding = 20
     scene, layout = layoutscene(outer_padding; resolution, backgroundcolor)
@@ -18,7 +19,11 @@ function app(
     dgm_ax = layout[1, 3] = LAxis(scene, title="Diagram")
     bcd_ax = layout[2, 3] = LAxis(scene, title="Barcode")
 
-    events = unique(sort(vec(Ripserer.dist(filtration))))
+    if filtration isa Ripserer.AbstractRipsFiltration
+        events = unique(sort(vec(Ripserer.adjacency_matrix(filtration))))
+    else
+        events = range(0.0, threshold(filtration), length=100)
+    end
 
     sld_ax = layout[3, 1:2] = LSlider(
         scene,
@@ -46,4 +51,25 @@ function app(
     tightlimits!(bcd_ax)
 
     return scene
+end
+
+function movie(points, filtration=Rips(points);
+               palette=DEFAULT_PALETTE,
+               resolution=(1600, 900),
+               backgroundcolor=:white,#RGBf0(0.98, 0.98, 0.98),
+               t_start=0.0,
+               t_end=threshold(filtration),
+               n_steps=1000,
+               fps=30,
+               filename="out.mkv",
+               ripserer_kwargs...)
+    time = Observable(t_start)
+    scene = app(
+        points, filtration; palette, resolution, backgroundcolor, time, ripserer_kwargs...
+    )
+    r = range(t_start, t_end, length=n_steps)
+    record(scene, filename, r; framerate=fps) do t
+        println("t = $t / $t_end")
+        time[] = t
+    end
 end

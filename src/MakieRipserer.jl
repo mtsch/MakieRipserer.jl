@@ -1,34 +1,50 @@
 module MakieRipserer
 
 using AbstractPlotting
-using AbstractPlotting: Plot
-
-using ColorSchemes
-
+using IterTools
+using PersistenceDiagrams
+using PlotUtils
 using Ripserer
+
+using AbstractPlotting:
+    Plot, PointBased, Triangle
 using Ripserer:
     AbstractSimplex, AbstractFiltration, AbstractRipsFiltration, AbstractChainElement
 
-using PersistenceDiagrams
+export plot_barcode, plot_diagram
 
-export plot_diagram, plot_barcode
+const DEFAULT_PALETTE = :default
 
-const DEFAULT_PALETTE = :tab10
-
-# If color is an Integer, get it from palette, otherwise return it.
+# This allows us to provide either color names or integers for colors.
 function get_color(p, name)
     lift(p[name], p[:palette]) do color, scheme
         if color isa Integer
-            colorschemes[scheme][color]
+            PlotUtils.get_colorscheme(scheme)[color]
         else
             color
         end
     end
 end
 
-include("rips.jl")
+# These options can be passed to a chain or simplex.
+const CHAIN_ARGS = (
+    pointcolor = 1,
+    edgecolor = :black,
+    trianglecolor = 2,
+    shading = false,
+    transparency = false,
+    palette = DEFAULT_PALETTE,
+    markersize = 1,
+    linewidth = 1,
+)
+
+function forward_chain_args(p)
+    [name => p[name] for name in keys(CHAIN_ARGS)]
+end
+
 include("chain.jl")
+include("filtration.jl")
 include("diagrams.jl")
 include("app.jl")
 
-end # module
+end

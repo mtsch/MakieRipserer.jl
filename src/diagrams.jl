@@ -11,6 +11,14 @@ function guess_infinity(diagram, infinity)
     end
 end
 
+@recipe(DiagramPlot, diagram) do scene
+    return Theme(
+        color = :gray,
+        infinity = nothing,
+        persistence = false,
+    )
+end
+
 function AbstractPlotting.default_theme(
     scene::SceneLike, ::Type{<:Plot(PersistenceDiagram)}
 )
@@ -20,7 +28,7 @@ function AbstractPlotting.default_theme(
         persistence = false,
     )
 end
-function AbstractPlotting.plot!(p::Plot(PersistenceDiagram))
+function AbstractPlotting.plot!(p::DiagramPlot)
     infinity = lift(guess_infinity, p[1], p[:infinity])
     points = lift(p[1], p[:persistence], infinity) do diag, pers, inf
         pts = Vector{Point2f0}(undef, length(diag))
@@ -33,6 +41,7 @@ function AbstractPlotting.plot!(p::Plot(PersistenceDiagram))
     end
     scatter!(p, points; color=p[:color])
 end
+AbstractPlotting.plottype(::PersistenceDiagram) = DiagramPlot
 
 function plot_diagram!(
     scene,
@@ -42,7 +51,7 @@ function plot_diagram!(
     palette=DEFAULT_PALETTE,
     time=Observable(nothing),
 )
-    cscheme = colorschemes[palette]
+    cscheme = PlotUtils.get_colorscheme(palette)
     lims = @lift PersistenceDiagrams.limits(diags, $infinity)
     t_lo, t_hi, inf_val = to_value(lims)
     infinity = @lift $lims[3]
@@ -126,7 +135,7 @@ function plot_barcode!(
     linewidth=3,
     time=Observable(nothing),
 )
-    cscheme = colorschemes[palette]
+    cscheme = PlotUtils.get_colorscheme(palette)
     lims = @lift PersistenceDiagrams.limits(diags, $infinity)
     t_lo, t_hi, inf_val = to_value(lims)
     infinity = @lift $lims[3]
