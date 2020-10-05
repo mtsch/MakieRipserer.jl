@@ -1,3 +1,29 @@
+struct FilteredSimplices{S, T}
+    simplices::Vector{S}
+    times::Vector{T}
+end
+
+function FilteredSimplices(flt::AbstractFiltration, ::Val{0})
+    simplices = sort!([simplex(flt, Val(0), (v,)) for v in Ripserer.vertices(flt)])
+    times = birth.(simplices)
+    FilteredSimplices(simplices, times)
+end
+function FilteredSimplices(flt::AbstractFiltration, ::Val{1})
+    simplices = sort!(Ripserer.edges(flt))
+    times = birth.(simplices)
+    FilteredSimplices(simplices, times)
+end
+function FilteredSimplices(flt::AbstractFiltration, ::Val{2})
+    simplices = sort!(collect(Ripserer.columns_to_reduce(flt, Ripserer.edges(flt))))
+    times = birth.(simplices)
+    FilteredSimplices(simplices, times)
+end
+
+function Base.getindex(flt::FilteredSimplices, time)
+    i = searchsortedlast(flt.times, time)
+    return view(flt.simplices, 1:i)
+end
+
 function _collect_simplices(itr, pts)
     fst = first(itr)
     times = fill(zero(birth(fst)), length(fst))
@@ -31,8 +57,6 @@ function AbstractPlotting.plot!(p::Plot(AbstractFiltration, AbstractVector))
     pts = to_value(p[2])
     time = p[:time]
 
-    vertices = sort!([simplex(flt, Val(0), (v,)) for v in Ripserer.vertices(flt)])
-    vertex_ts = birth.(vertices)
     edges = sort!(Ripserer.edges(flt))
     edge_ts = birth.(edges)
     triangles = sort!(collect(Ripserer.columns_to_reduce(flt, edges)))

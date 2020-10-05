@@ -1,35 +1,42 @@
-function _plottable(sxs::AbstractVector{<:AbstractSimplex}, data, ::Val{D}) where D
-    result = NTuple{D, eltype(data)}[]
-    for sx in sxs
-        for vs in IterTools.subsets(vertices(sx), Val(D))
-            push!(result, getindex.(Ref(data), vs))
-        end
-    end
-    unique!(result)
-    return collect(Iterators.flatten(result))
-end
-
 # This code is generated to make types specific enough.
 # Using Union{Scatter, LineSegments, Mesh} does not work.
-for (type, n) in ((:Scatter, 1), (:LineSegments, 2), (:Mesh, 3))
+for T in (Scatter, LineSegments, Mesh)
     @eval begin
         function AbstractPlotting.convert_arguments(
             ::Type{T}, sx::AbstractSimplex, data::AbstractVector
-        ) where T<:$type
+        ) where T<:$T
             return convert_arguments(T, [sx], data)
         end
-    end
 
-    @eval begin
+        function AbstractPlotting.convert_arguments(
+            ::Type{T}, elem::AbstractChainElement, data::AbstractVector
+        ) where T<:$T
+            return convert_arguments(T, [simplex(elem)], data)
+        end
+
         function AbstractPlotting.convert_arguments(
             ::Type{T}, chain::AbstractVector{<:AbstractChainElement}, data::AbstractVector
-        ) where T<:$type
+        ) where T<:$T
             return convert_arguments(T, simplex.(chain), data)
         end
     end
-
-    if n ≤ 2
+end
+for S in (
+    AbstractSimplex,
+    AbstractChainElement,
+    AbstractVector{<:AbstractSimplex},
+    AbstractVector{<:AbstractChainElement}
+)
+    @eval begin
+        function AbstractPlotting.plottype(::$S, ::AbstractVector)
+            return ChainPlot
+        end
+    end
+    for T in (Scatter, LineSegments, Mesh)
         @eval begin
+            function AbstractPlotting.convert_arguments(::Type{<:$T}, sx::$S)
+                _simplex_plot_error(sx)
+            end
         end
     end
 end
@@ -95,12 +102,6 @@ function AbstractPlotting.plot!(p::ChainPlot)
     )
 end
 
-function AbstractPlotting.plottype(::AbstractSimplex, ::AbstractVector)
-    return ChainPlot
-end
-function AbstractPlotting.plottype(::AbstractVector{<:AbstractSimplex}, ::AbstractVector)
-    return ChainPlot
-end
-function AbstractPlotting.plottype(::AbstractVector{<:AbstractChainElement}, ::AbstractVector)
-    return ChainPlot
+function _simplex_plot_error(arg::T) where T
+    throw(ArgumentError("No data provided. To plot $T, use `plot(::$T, data)"))
 end

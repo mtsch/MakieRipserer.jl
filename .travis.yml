@@ -1,0 +1,28 @@
+language: julia
+
+jobs:
+  include:
+    - os: linux
+      julia: 1
+      after_success:
+      - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())';
+      - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())';
+
+    - os: linux
+      julia: 1.0
+      after_success: skip
+
+    - os: linux
+      julia: nightly
+      after_success: skip
+
+    - os: osx
+      julia: 1
+      after_success: skip
+
+    - os: windows
+      julia: 1
+      after_success: skip
+
+notifications:
+  email: false
