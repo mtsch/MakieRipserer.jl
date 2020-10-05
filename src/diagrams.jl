@@ -13,9 +13,9 @@ end
 
 @recipe(DiagramPlot, diagram) do scene
     return Theme(
-        color = :gray,
-        infinity = nothing,
-        persistence = false,
+        color=:gray,
+        infinity=nothing,
+        persistence=false,
     )
 end
 
@@ -23,9 +23,9 @@ function AbstractPlotting.default_theme(
     scene::SceneLike, ::Type{<:Plot(PersistenceDiagram)}
 )
     return Theme(
-        color = :gray,
-        infinity = nothing,
-        persistence = false,
+        color=:gray,
+        infinity=nothing,
+        persistence=false,
     )
 end
 function AbstractPlotting.plot!(p::DiagramPlot)
@@ -75,7 +75,12 @@ function plot_diagram!(
         linestyle=:dot, color=:gray,
     )
     for (i, diag) in enumerate(diags)
-        !isempty(diag) && plot!(scene, diag; infinity, persistence, color=cscheme[i])
+        !isempty(diag) && plot!(
+            scene, diag;
+            infinity=infinity,
+            persistence=persistence,
+            color=cscheme[i]
+        )
     end
     xlims!(scene, t_lo - gap, t_hi + gap)
     ylims!(scene, t_lo - gap, t_hi + gap)
@@ -99,6 +104,14 @@ function plot_diagram!(
     return scene
 end
 plot_diagram(diags; kwargs...) = plot_diagram!(Scene(), diags; kwargs...)
+
+for T in (
+    AbstractVector{<:PersistenceDiagram},
+    NTuple{<:Any, PersistenceDiagram},
+    PersistenceDiagram,
+)
+    @eval AbstractPlotting.plot(diags::$T; kwargs...) = plot_diagram(diags; kwargs...)
+end
 
 @recipe(Bars) do scene
     Theme(
@@ -154,7 +167,13 @@ function plot_barcode!(
     for diag in diags
         if !isempty(diag)
             color = cscheme[dim(diag) + 1]
-            bars!(scene, diag; linewidth, color, ystart, infinity)
+            bars!(
+                scene, diag;
+                linewidth=linewidth,
+                color=color,
+                ystart=ystart,
+                infinity=infinity,
+            )
             ystart += length(diag)
         end
     end
