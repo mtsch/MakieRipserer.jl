@@ -1,5 +1,8 @@
 # MakieRipserer.jl
 
+[![Coverage Status](https://coveralls.io/repos/github/mtsch/MakieRipserer.jl/badge.svg?branch=master)](https://coveralls.io/github/mtsch/MakieRipserer.jl?branch=master)
+[![Build Status](https://travis-ci.com/mtsch/MakieRipserer.jl.svg?branch=master)](https://travis-ci.com/mtsch/MakieRipserer.jl)
+
 Experimental [Makie](https://github.com/JuliaPlots/Makie.jl) support for
 [Ripserer.jl](https://github.com/mtsch/Ripserer.jl/).
 
