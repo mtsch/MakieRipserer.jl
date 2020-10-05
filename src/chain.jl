@@ -65,14 +65,13 @@ function AbstractPlotting.convert_arguments(
     ::Type{T}, chain::AbstractVector{<:AbstractSimplex}, data::AbstractVector
 ) where T<:Mesh
     _data, = convert_arguments(PointBased(), data)
-    tris = NTuple{3, Int}[]
+    faces = typeof(GeometryBasics.GLTriangleFace(1, 2, 3))[]
     for sx in chain
         for vs in IterTools.subsets(vertices(sx), Val(3))
-            push!(tris, vs)
+            push!(faces, vs)
         end
     end
-    faces = transpose(reshape(reinterpret(Int, tris), (3, length(tris))))
-    return convert_arguments(T, data, faces)
+    return convert_arguments(T, GeometryBasics.Mesh(_data, faces))
 end
 
 @recipe(ChainPlot, chain, data) do scene

@@ -11,6 +11,8 @@ using AbstractPlotting:
 using Ripserer:
     AbstractSimplex, AbstractFiltration, AbstractRipsFiltration, AbstractChainElement
 
+import GeometryBasics
+
 export plot_barcode
 
 const DEFAULT_PALETTE = :default

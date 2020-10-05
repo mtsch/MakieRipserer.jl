@@ -4,14 +4,31 @@ function app(
     points, filtration=Rips(points);
     palette=DEFAULT_PALETTE,
     resolution=(1600, 900),
-    backgroundcolor=:white,#RGBf0(0.98, 0.98, 0.98),
+    backgroundcolor=:white,
     time=Observable(0.0),
+    slider_values=1000,
     ripserer_kwargs...
 )
     @info "computing diagrams"
     diagram = ripserer(filtration; progress=true, ripserer_kwargs...)
-    intervals = collect(Iterators.flatten(diagram[2:end]))
+    return app(
+        points, filtration, diagram;
+        palette=DEFAULT_PALETTE,
+        resolution=(1600, 900),
+        backgroundcolor=:white,
+        time=Observable(0.0),
+        slider_values=1000
+    )
+end
 
+function app(
+    points, filtration, diagram;
+    palette=DEFAULT_PALETTE,
+    resolution=(1600, 900),
+    backgroundcolor=:white,
+    time=Observable(0.0),
+    slider_values=1000,
+)
     outer_padding = 20
     scene, layout = layoutscene(outer_padding; resolution, backgroundcolor)
 
@@ -19,15 +36,12 @@ function app(
     dgm_ax = layout[1, 3] = LAxis(scene, title="Diagram")
     bcd_ax = layout[2, 3] = LAxis(scene, title="Barcode")
 
-    if filtration isa Ripserer.AbstractRipsFiltration
-        events = unique(sort(vec(Ripserer.adjacency_matrix(filtration))))
-    else
-        events = range(0.0, threshold(filtration), length=100)
-    end
+    min_time = minimum(Ripserer.births(filtration))
+    max_time = threshold(filtration)
 
     sld_ax = layout[3, 1:2] = LSlider(
         scene,
-        range=range(events[1], events[end], length=10 * length(events)),
+        range=range(min_time, max_time, length=slider_values),
     )
     set_close_to!(sld_ax, to_value(time))
     on(time) do val
@@ -36,7 +50,7 @@ function app(
     t = sld_ax.value
 
     title_text = @lift string("t = ", rpad($t, 6)[1:6])
-    title = layout[0, :] = LText(scene, title_text, textsize = 30)
+    title = layout[0, :] = LText(scene, title_text, textsize=30)
 
     plot!(flt_ax, filtration, points; time=t, palette)
     if cameracontrols(flt_ax.scene) isa Camera3D
@@ -56,8 +70,8 @@ end
 function movie(points, filtration=Rips(points);
                palette=DEFAULT_PALETTE,
                resolution=(1600, 900),
-               backgroundcolor=:white,#RGBf0(0.98, 0.98, 0.98),
-               t_start=0.0,
+               backgroundcolor=:white,
+               t_start=minimum(Ripserer.births.(filtration)),
                t_end=threshold(filtration),
                n_steps=1000,
                fps=30,
