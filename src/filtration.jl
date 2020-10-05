@@ -1,3 +1,10 @@
+"""
+    FilteredSimplices{S, T}
+
+This struct allows quick filtering of simplices. To construct, use
+
+    FilteredSimplice(::AbstractFiltration, ::Val{D})
+"""
 struct FilteredSimplices{S, T}
     simplices::Vector{S}
     times::Vector{T}
@@ -18,27 +25,9 @@ function FilteredSimplices(flt::AbstractFiltration, ::Val{2})
     times = birth.(simplices)
     FilteredSimplices(simplices, times)
 end
-
 function Base.getindex(flt::FilteredSimplices, time)
     i = searchsortedlast(flt.times, time)
     return view(flt.simplices, 1:i)
-end
-
-function _collect_simplices(itr, pts)
-    fst = first(itr)
-    times = fill(zero(birth(fst)), length(fst))
-    points = fill(pts[1], length(fst))
-
-    for i in itr
-        append!(points, pts[i])
-        append!(times, fill(birth(i), length(i)))
-    end
-    points, times
-end
-
-function _collect_simplices(vertices, births, pts)
-    perm = sortperm(births)
-    return pts[vertices[perm]], births[perm]
 end
 
 function AbstractPlotting.default_theme(
@@ -57,27 +46,14 @@ function AbstractPlotting.plot!(p::Plot(AbstractFiltration, AbstractVector))
     pts = to_value(p[2])
     time = p[:time]
 
-    edges = sort!(Ripserer.edges(flt))
-    edge_ts = birth.(edges)
-    triangles = sort!(collect(Ripserer.columns_to_reduce(flt, edges)))
-    triangle_ts = birth.(triangles)
+    vertices = FilteredSimplices(flt, Val(0))
+    edges = FilteredSimplices(flt, Val(1))
+    triangles = FilteredSimplices(flt, Val(2))
 
-    drawn_vertices = lift(p[:time]) do t
-        i = searchsortedlast(vertex_ts, t)
-        vertices[1:i]
-    end
-    drawn_edges = lift(p[:time]) do t
-        i = searchsortedlast(edge_ts, t)
-        edges[1:i]
-    end
-    drawn_triangles = lift(p[:time], p[:triangles]) do t, tri
-        if tri
-            i = searchsortedlast(triangle_ts, t)
-            triangles[1:i]
-        else
-            triangles[1:0]
-        end
-    end
+    drawn_vertices = @lift vertices[$time]
+    drawn_edges = @lift edges[$time]
+    drawn_triangles = @lift triangles[$time]
+
     mesh!(
         p, drawn_triangles, pts;
         color=get_color(p, :trianglecolor),

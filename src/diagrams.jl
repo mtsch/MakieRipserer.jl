@@ -100,6 +100,14 @@ function plot_diagram!(
 end
 plot_diagram(diags; kwargs...) = plot_diagram!(Scene(), diags; kwargs...)
 
+for T in (
+    AbstractVector{<:PersistenceDiagram},
+    NTuple{<:Any, PersistenceDiagram},
+    PersistenceDiagram,
+)
+    @eval AbstractPlotting.plot(diags::$T; kwargs...) = plot_diagram(diags; kwargs...)
+end
+
 @recipe(Bars) do scene
     Theme(
         color = :black,

@@ -11,7 +11,7 @@ using AbstractPlotting:
 using Ripserer:
     AbstractSimplex, AbstractFiltration, AbstractRipsFiltration, AbstractChainElement
 
-export plot_barcode, plot_diagram
+export plot_barcode
 
 const DEFAULT_PALETTE = :default
 
@@ -37,10 +37,6 @@ const CHAIN_ARGS = (
     markersize = 1,
     linewidth = 1,
 )
-
-function forward_chain_args(p)
-    [name => p[name] for name in keys(CHAIN_ARGS)]
-end
 
 include("chain.jl")
 include("filtration.jl")
