@@ -70,6 +70,7 @@ MakieRipserer.app(points, filtration=Alpha(points))
 
 View filtration, diagram, and barcode in interactive app.
 
-### Example
+### Examples
 
 ![](docs/src/assets/torus.gif)
+![](docs/src/assets/cat.gif)
