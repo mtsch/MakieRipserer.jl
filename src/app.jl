@@ -50,11 +50,15 @@ function app(
     layout[3, 1:2] = time_slider
     layout[3, 3] = toggles
 
+    markersize=length(points[1]) == 2 ? 5 : 10
+
     plot!(
         filtration_axis, filtration, points;
-        time=t, palette=palette, triangles=triangles, edges=edges, markersize=10
+        time=t, palette, triangles, edges, markersize
     )
-    plot_critical_chains!(filtration_axis, diagram, points, criticals, t, palette)
+    plot_critical_chains!(
+        filtration_axis, diagram, points, criticals; time=t, palette, markersize
+    )
     if cameracontrols(filtration_axis.scene) isa Camera3D
         cameracontrols(filtration_axis.scene).rotationspeed[] = 0.01f0
     end
@@ -103,7 +107,7 @@ function toggles!(scene, dim_max)
     )
 end
 
-function plot_critical_chains!(scene, diagram, points, criticals, time, palette)
+function plot_critical_chains!(scene, diagram, points, criticals; time, kwargs...)
     death_chains = [FilteredChain(filter(!isnothing, death_simplex.(d)), points)
                     for d in diagram]
     birth_chains = [FilteredChain(birth_simplex.(d), points)
@@ -114,9 +118,9 @@ function plot_critical_chains!(scene, diagram, points, criticals, time, palette)
     )
         for chain in (birth_chain, death_chain)
             if length(chain.triangles) == 0
-                chainplot!(scene, chain; time, palette, edgecolor=2+i, linewidth=3)
+                chainplot!(scene, chain; edgecolor=2+i, linewidth=3, time, kwargs...)
             else
-                chainplot!(scene, chain; time, palette, trianglecolor=2+i)
+                chainplot!(scene, chain; trianglecolor=2+i, time, kwargs...)
             end
         end
     end
