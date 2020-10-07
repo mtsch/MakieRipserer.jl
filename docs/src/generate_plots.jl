@@ -8,24 +8,23 @@ using SparseArrays
 # import Pkg; Pkg.add(url="https://github.com/mtsch/TopologicalDatasets.jl")
 using TopologicalDatasets
 
-pts = sample(TopologicalDatasets.Sphere(2), 200)
-res = ripserer(pts; reps=true, dim_max=2)
+torus = sample(Torus(r1=3), 1000)
+res = ripserer(Alpha(torus); reps=true, dim_max=2)
 
 # barcode
-bcplt = plot_barcode(res)
+bcplt = plot_barcode(res, infinity=Observable(5))
 save(joinpath(@__DIR__, "assets", "barcode.png"), bcplt)
 
 # diagram
-dgplt = plot(res)
+dgplt = plot(res, infinity=Observable(5))
 save(joinpath(@__DIR__, "assets", "diagram.png"), dgplt)
 
 # cocycle
-repplt = plot(pts)
-plot!(repplt, res[end][end].representative, pts)
+repplt = plot(torus)
+plot!(repplt, res[end][end-1].representative, torus)
 save(joinpath(@__DIR__, "assets", "cocycle.png"), repplt)
 
 # app demo
-torus = sample(Torus(r1=3), 1000)
 
 time = Observable(0.0)
 torus_app = MakieRipserer.app(torus; time=time)

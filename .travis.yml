@@ -11,6 +11,7 @@ jobs:
     - os: linux
       julia: nightly
       after_success: skip
+      allow_failures: true
 
     - os: osx
       julia: 1
@@ -19,6 +20,7 @@ jobs:
     - os: windows
       julia: 1
       after_success: skip
+      allow_failures: true
 
 notifications:
   email: false
