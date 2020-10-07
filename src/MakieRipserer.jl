@@ -10,6 +10,8 @@ using AbstractPlotting:
     Plot, PointBased, Triangle
 using Ripserer:
     AbstractSimplex, AbstractFiltration, AbstractRipsFiltration, AbstractChainElement
+using GeometryBasics:
+    GLTriangleFace
 
 import GeometryBasics
 
@@ -19,29 +21,17 @@ const DEFAULT_PALETTE = :default
 
 # This allows us to provide either color names or integers for colors.
 function get_color(p, name)
-    lift(p[name], p[:palette]) do color, scheme
+    lift(name, p[:palette]) do color, scheme
         if color isa Integer
-            PlotUtils.get_colorscheme(scheme)[color]
+            colors = PlotUtils.get_colorscheme(scheme)
+            colors[mod1(color, length(colors))]
         else
             color
         end
     end
 end
 
-# These options can be passed to a chain or simplex.
-const CHAIN_ARGS = (
-    pointcolor = 1,
-    edgecolor = :black,
-    trianglecolor = 2,
-    shading = false,
-    transparency = false,
-    palette = DEFAULT_PALETTE,
-    markersize = 1,
-    linewidth = 1,
-)
-
-include("chain.jl")
-include("filtration.jl")
+include("filtered_chain.jl")
 include("diagrams.jl")
 include("app.jl")
 
