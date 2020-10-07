@@ -32,9 +32,6 @@ function get_color(p, name)
 end
 
 include("filtered_chain.jl")
-#include("filtered.jl")
-#include("chain.jl")
-#include("filtration.jl")
 include("diagrams.jl")
 include("app.jl")
 
