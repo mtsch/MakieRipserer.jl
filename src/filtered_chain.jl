@@ -206,7 +206,7 @@ for T in (
         function AbstractPlotting.convert_arguments(::Type{<:ChainPlot}, x::$T, data)
             return (FilteredChain(x, data),)
         end
-        function AbstractPlotting.convert_arguments(::Type{<:Scatter}, x::$T)
+        function AbstractPlotting.plottype(x::$T)
             _no_data_error(x)
         end
     end
