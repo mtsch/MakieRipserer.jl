@@ -4,6 +4,7 @@ using AbstractPlotting
 using IterTools
 using PersistenceDiagrams
 using PlotUtils
+using ProgressMeter
 using Ripserer
 
 using AbstractPlotting:
@@ -15,7 +16,7 @@ using GeometryBasics:
 
 import GeometryBasics
 
-export plot_barcode
+export plot_barcode, FilteredChain, ObservableChain
 
 const DEFAULT_PALETTE = :default
 
@@ -31,8 +32,13 @@ function get_color(p, name)
     end
 end
 
-include("filtered_chain.jl")
+include("conversion.jl")
+include("filteredchain.jl")
+include("observablechain.jl")
 include("diagrams.jl")
 include("app.jl")
+include("ripserer.jl")
+
+#include("reduction-visualization/chainplots.jl")
 
 end

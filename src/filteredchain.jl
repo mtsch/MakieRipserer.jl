@@ -1,14 +1,34 @@
-abstract type FilteredSimplices end
+# This file contains the recipes for plotting collections of simplices filtered by birth
+# time. This also includes filtrations.
 
-Base.firstindex(fs::FilteredSimplices) = first(fs.times)
-Base.lastindex(fs::FilteredSimplices) = last(fs.times)
-Base.length(fs::FilteredSimplices) = length(fs.times)
+# TODO: Plotting view is broken. Uncomment views when
+# https://github.com/JuliaPlots/Makie.jl/issues/715 is resolved.
 
-function Base.show(io::IO, fs::F) where F<:FilteredSimplices
+"""
+    FilteredFaces
+
+Abstract type for [`FilteredVertices`](@ref), [`FilteredEdges`](@ref), and
+[`FilteredTriangles`](@ref).
+
+The structures contain plotting data and a vector of times. Indexing into them with a time
+returns an object that can be plotted without conversion.
+"""
+abstract type FilteredFaces end
+
+Base.firstindex(fs::FilteredFaces) = first(fs.times)
+Base.lastindex(fs::FilteredFaces) = last(fs.times)
+Base.length(fs::FilteredFaces) = length(fs.times)
+
+function Base.show(io::IO, fs::F) where F<:FilteredFaces
     print(io, nameof(F), " t=[", firstindex(fs), ", ", lastindex(fs), "], n=", length(fs))
 end
 
-struct FilteredVertices{V, T} <: FilteredSimplices
+"""
+    FilteredVertices{V, T}
+
+See: [`FilteredFaces`](@ref).
+"""
+struct FilteredVertices{V, T} <: FilteredFaces
     vertices::Vector{V}
     times::Vector{T}
 end
@@ -16,28 +36,60 @@ function FilteredVertices(flt, data)
 end
 function Base.getindex(v::FilteredVertices, t)
     i = searchsortedlast(v.times, t)
-    return view(v.vertices, 1:i)
+    #return view(v.vertices, 1:i)
+    return v.vertices[1:i]
 end
 
-struct FilteredEdges{V, T} <: FilteredSimplices
+"""
+    FilteredEdges{V, T}
+
+See: [`FilteredFaces`](@ref).
+"""
+struct FilteredEdges{V, T} <: FilteredFaces
     edges::Vector{V}
     times::Vector{T}
 end
 function Base.getindex(v::FilteredEdges, t)
     i = searchsortedlast(v.times, t)
-    return view(v.edges, 1:2i)
+    #return view(v.edges, 1:2i)
+    return v.edges[1:2i]
 end
 
-struct FilteredTriangles{F, T, D} <: FilteredSimplices
+"""
+    FilteredTriangles{F, D, T}
+
+See: [`FilteredFaces`](@ref).
+"""
+struct FilteredTriangles{F, D, T} <: FilteredFaces
     faces::Vector{F}
     data::D
     times::Vector{T}
 end
 function Base.getindex(m::FilteredTriangles, t)
     i = searchsortedlast(m.times, t)
-    return GeometryBasics.Mesh(m.data, view(m.faces, 1:i))
+    #return GeometryBasics.Mesh(m.data, view(m.faces, 1:i))
+    return GeometryBasics.Mesh(m.data, m.faces[1:i])
 end
 
+"""
+    FilteredChain
+
+Contains plotting data to plot a collection of simplices. To construct it, use
+`FilteredChain(simplices_or_filtration, data)`. The `data` should be something Makie can
+convert to points.
+
+# Example
+
+julia> using Ripserer
+
+julia> simplices = [Simplex{2}(1, 1), Simplex{2}(2, 2)];
+
+julia> data = [(0, 0), (0, 1), (1, 0), (1, 1)];
+
+julia> fc = FilteredChain(simplices, data)
+FilteredChain(nv=4, ne=5, nt=2)
+
+"""
 struct FilteredChain{V<:FilteredVertices, E<:FilteredEdges, T<:FilteredTriangles}
     vertices::V
     edges::E
@@ -211,3 +263,53 @@ for T in (
         end
     end
 end
+
+"""
+    chainplot(x, data)
+
+Plot a simplex, collection of simplices, or filtration. Data is used to determine vertex
+locations. Setting the `time` filters plotted simplices by birth.
+
+Names or `Int`s can be used to set colors.
+
+# Attributes
+
+    vertexcolor   1
+    edgecolor     :black
+    trianglecolor 2
+    shading       false
+    transparency  false
+    palette       :default
+    markersize    10
+    linewidth     1
+    triangles     true
+    edges         true
+    time          Inf
+
+"""
+chainplot
+
+"""
+    chainplot!(x, data)
+
+Plot a simplex, collection of simplices, or filtration. Data is used to determine vertex
+locations. Setting the `time` filters plotted simplices by birth.
+
+Names or `Int`s can be used to set colors.
+
+# Attributes
+
+    vertexcolor   1
+    edgecolor     :black
+    trianglecolor 2
+    shading       false
+    transparency  false
+    palette       :default
+    markersize    10
+    linewidth     1
+    triangles     true
+    edges         true
+    time          Inf
+
+"""
+chainplot!
