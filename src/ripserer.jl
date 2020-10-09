@@ -17,42 +17,43 @@ using Ripserer:
     zeroth_intervals
 
 struct ReductionPlot{
-    O1<:ObservableChain, O2<:ObservableChain, O3<:ObservableChain, O4<:ObservableChain, D
+    O1<:ObservableChain, O2<:ObservableChain, O3<:ObservableChain, O4<:ObservableChain,
+    D, C<:AbstractCamera
 }
-    chain_a::O1 # columns to reduce and cocycles
-    chain_b::O2 # current working coboundary
-    chain_c::O3 # column to add
-    chain_d::O4 # death simplex and pivot
+    chain_a::O1 # current working coboundary
+    chain_b::O2 # column to add
+    chain_c::O3 # death simplex and pivot
+    chain_d::O4 # columns to reduce and cocycles
     intervals::Vector{Vector{PersistenceInterval}}
     data::D
     scene::Scene
     layout::GridLayout
     stream::VideoStream
+    camera::C
+    rotationspeed::Float64
 end
 
 function ReductionPlot(
     data, intervals, scene::Scene, layout::GridLayout, stream::VideoStream;
-    start=0, infinity=nothing
+    start=0, infinity=nothing, palette=DEFAULT_PALETTE, rotationspeed=0.01
 )
     _data = convert_arguments(Scatter, data)[1]
-    rp = ReductionPlot(
-        ObservableChain(data),
-        ObservableChain(data),
-        ObservableChain(data),
-        ObservableChain(data),
-        convert(Vector{Vector{PersistenceInterval}}, intervals),
-        _data,
-        scene,
-        layout,
-        stream,
-    )
-    data_axis = layout[1:3, 1:2] = LScene(scene)
-    plot!(data_axis, rp.data)
-    plot!(data_axis, rp.chain_a; color=1)
-    plot!(data_axis, rp.chain_b; color=2)
-    plot!(data_axis, rp.chain_c; color=3)
-    plot!(data_axis, rp.chain_d; color=4)
+    chain_a = ObservableChain(data)
+    chain_b = ObservableChain(data)
+    chain_c = ObservableChain(data)
+    chain_d = ObservableChain(data)
 
+    data_axis = scene #layout[1:3, 1:2] = LScene(scene) # when diagram will be shown
+    plot!(data_axis, _data; color=PlotUtils.get_colorscheme(palette)[1])
+    plot!(data_axis, chain_a; color=2)
+    plot!(data_axis, chain_b; color=3)
+    plot!(data_axis, chain_c; color=4)
+    plot!(data_axis, chain_d; color=5)
+    camera = cameracontrols(data_axis)
+
+    intervals = convert(Vector{Vector{PersistenceInterval}}, intervals)
+
+    #= TODO also show diagram as it's being constructed
     diagram_axis = layout[2, 3] = LAxis(scene)
     if isnothing(infinity)
         infinity = Ripserer.radius(rp.data)
@@ -61,7 +62,22 @@ function ReductionPlot(
     for ints in intervals
         diagramplot!(diagram_axis, ints)
     end
+    =#
+
+    rp = ReductionPlot(
+        chain_a, chain_b, chain_c, chain_d,
+        intervals, _data, scene, layout, stream, camera, rotationspeed
+    )
     return rp
+end
+
+function recordframes!(plot, nframes)
+    for _ in 1:nframes
+        recordframe!(plot.stream)
+        if plot.camera isa Camera3D
+            rotate_cam!(plot.scene, Vec3(plot.rotationspeed, 0.0, 0.0))
+        end
+    end
 end
 
 """
@@ -84,7 +100,7 @@ end
 
 function VisualMatrix(matrix, plot::ReductionPlot; debug::Bool, kwargs...)
     buffer = eltype(matrix.chain)[]
-    cobuffer = eltype(matrix.columns_to_reduce)[]
+    cobuffer = eltype(matrix.reduced.buffer)[]
     return VisualMatrix(matrix, plot, buffer, cobuffer, debug, (;kwargs...))
 end
 
@@ -123,107 +139,150 @@ function Ripserer.next_matrix(matrix::VisualMatrix, progress)
     return VisualMatrix(next, matrix.plot; debug=matrix.debug, matrix.kwargs...)
 end
 
-#=
-function recordframes!(matrix, nframes)
+function clear_plot!(matrix)
+    matrix.plot.chain_d[] = ()
+    matrix.plot.chain_a[] = ()
+    matrix.plot.chain_b[] = ()
+    matrix.plot.chain_c[] = ()
+end
+
+function recordframes!(matrix::VisualMatrix, n)
     if !matrix.debug
-        for _ in 1:nframes
-            recordframe!(matrix.stream)
-            if cameracontrols(matrix.scene) isa Camera3D
-                rotate_cam!(matrix.scene, Vec3(0.01, 0, 0))
-            end
-        end
+        recordframes!(matrix.plot, n)
     end
 end
 
-function clear!(matrix)
-    clear_all!(matrix.plot)
-end
-function show_chain!(matrix, pivot)
-    buffer = matrix.buffer
-    empty!(buffer)
-    if isempty(matrix.chain)
-        return nothing
-    end
-    while (p = pop!(matrix.chain)) ≢ nothing
-        push!(buffer, p)
-    end
-    copy!(matrix.chain.heap, buffer)
-
-    if !matrix.debug
-        clear_chain!(matrix.plot)
-        clear_column!(matrix.plot)
-        show_chain!(matrix.plot, buffer)
-        show_column!(matrix.plot, pivot)
+function display_birth!(matrix, column_to_reduce)
+    clear_plot!(matrix)
+    empty!(matrix.buffer)
+    empty!(matrix.cobuffer)
+    plot = matrix.plot
+    plot.chain_d[] = column_to_reduce
+    recordframes!(matrix, get(matrix.kwargs, :birth_frames, 2))
+    if !is_cohomology(matrix)
+        plot.chain_d[] = ()
     end
     return nothing
 end
-function show_cocycle!(matrix, column)
-    if is_cohomology(matrix)
+
+function display_chain!(matrix)
+    buffer = matrix.buffer
+    empty!(buffer)
+    if !isempty(matrix.chain)
+        while (p = pop!(matrix.chain)) ≢ nothing
+            push!(buffer, p)
+        end
+        copy!(matrix.chain.heap, buffer)
+    end
+    matrix.plot.chain_a[] = buffer
+    #recordframes!(matrix, get(matrix.kwargs, :chain_frames, 1))
+    return nothing
+end
+
+function display_pivot!(matrix, pivot)
+    matrix.plot.chain_c[] = pivot
+    recordframes!(matrix, get(matrix.kwargs, :pivot_frames, 1))
+    return nothing
+end
+
+function _sum_dupes!(buffer::Vector{<:AbstractChainElement})
+    sort!(buffer)
+    curr = buffer[1]
+    i = 1
+    for j in 2:length(buffer)
+        elem = buffer[j]
+        if iszero(curr)
+            curr = elem
+        elseif elem == curr
+            curr += elem
+        else
+            buffer[i] = curr
+            curr = elem
+            i += 1
+        end
+    end
+    resize!(buffer, i)
+    return nothing
+end
+
+function display_cocycle!(matrix, column_to_reduce)
+    if is_cohomology(matrix) && !isempty(matrix.reduced.buffer)
         cobuffer = matrix.cobuffer
         empty!(cobuffer)
-        for sx in matrix.reduced.buffer
-            push!(cobuffer, simplex(sx))
-        end
-        push!(cobuffer, column)
-        if !matrix.debug
-            show_birth!(matrix.plot, cobuffer)
-        end
+        copy!(cobuffer, matrix.reduced.buffer)
+        push!(cobuffer, column_to_reduce)
+        _sum_dupes!(cobuffer)
+        matrix.plot.chain_d[] = cobuffer
     end
+    return nothing
 end
-function show_birth!(matrix, sx)
-    if !matrix.debug
-        show_birth!(matrix.plot, sx)
-    end
-end
-function show_death!(matrix, pivot; nframes=1)
-    if !matrix.debug
-        clear_column!(matrix.plot)
-        show_death!(matrix.plot, pivot)
-        if !is_cohomology(matrix)
-            show_chain!(matrix, pivot)
+
+function display_column!(matrix, column)
+    buffer = matrix.buffer
+    empty!(buffer)
+    if is_cohomology(matrix)
+        for elem in column
+            coef = coefficient(elem)
+            for cofacet in coboundary(matrix, simplex(elem))
+                push!(buffer, chain_element_type(matrix)(cofacet, coef))
+            end
         end
+        _sum_dupes!(buffer)
+    else
+        copy!(buffer, column)
     end
+    matrix.plot.chain_b[] = buffer
+    recordframes!(matrix, get(matrix.kwargs, :column_frames, 1))
+    matrix.plot.chain_b[] = ()
+    return nothing
 end
-=#
 
 function Ripserer.reduce_column!(matrix::VisualMatrix, column_to_reduce)
     clear_buffer!(matrix.reduced)
-  # ###
-  # clear!(matrix)
-  # show_birth!(matrix, column_to_reduce)
-  # recordframes!(matrix, 1)
-  # if !is_cohomology(matrix)
-  #     clear_birth!(matrix.plot)
-  # end
-  # ###
+    ###
+    display_birth!(matrix, column_to_reduce)
+    ###
 
-    pivot = initialize_coboundary!(matrix, column_to_reduce)
+    # Don't do emergent pairs.
+    empty!(matrix.chain)
+    for cofacet in coboundary(matrix, column_to_reduce)
+        push!(matrix.chain, chain_element_type(matrix)(cofacet))
+    end
+    pivot = pop!(matrix.chain)
 
     while !isnothing(pivot)
+        ###
+        display_chain!(matrix)
+        display_pivot!(matrix, pivot)
+        ###
         column = matrix.reduced[pivot]
         isempty(column) && break
 
-  #     ###
-  #     show_chain!(matrix, pivot)
-  #     recordframes!(matrix, 1)
-  #     ###
         add!(matrix, column, pivot)
-  #     ###
-  #     show_cocycle!(matrix, column_to_reduce)
-  #     show_chain!(matrix, pivot)
-  #     recordframes!(matrix, 1)
-  #     ###
+        ###
+        display_cocycle!(matrix, column_to_reduce)
+        display_column!(matrix, column)
+        display_chain!(matrix)
+        display_pivot!(matrix, ())
+        ###
         pivot = pop!(matrix.chain)
     end
     if !isnothing(pivot)
-  #     ###
-  #     show_death!(matrix, pivot)
-  #     recordframes!(matrix, 1)
-  #     ###
+        ###
+        display_chain!(matrix)
+        display_pivot!(matrix, pivot)
+        ###
         finalize!(matrix, column_to_reduce, pivot)
     end
+    clear_plot!(matrix)
 
     return pivot
+end
+
+function compute_intervals!(matrix)
+    intervals = compute_intervals!(matrix.matrix, 0, true, false)
+    recordframes!(matrix, get(matrix.kwargs, :frames_after, 5))
+    return intervals
 end
 
 function vis_ripserer(
@@ -237,15 +296,18 @@ function vis_ripserer(
     alg=:cohomology,
     debug=false,
     framerate=6,
+    rotationspeed=0.01,
 )
-    if isnothing(scene) || isnothing(layout)
+    if isnothing(scene)
         scene, layout = layoutscene()
+    elseif isnothing(layout)
+        layout = GridLayout()
     end
     zeroth, to_reduce, to_skip = zeroth_intervals(
         filtration, 0, true, field_type, false
     )
     stream = VideoStream(scene; framerate)
-    plot = ReductionPlot(data, [zeroth], scene, layout, stream)
+    plot = ReductionPlot(data, [zeroth], scene, layout, stream; rotationspeed)
     return vis_ripserer(
         Val(alg), filtration, zeroth, to_reduce, to_skip, plot;
         dim_max, field_type, debug
@@ -306,7 +368,7 @@ function vis_ripserer(
             columns, inf_births = compute_death_simplices!(comatrix, true, 0)
             matrix = BoundaryMatrix{false}(field_type, filtration, columns)
             vmatrix = VisualMatrix(matrix, plot; debug, kwargs...)
-            diagram = compute_intervals!(matrix, 0, true, false)
+            diagram = compute_intervals!(vmatrix, 0, true, false)
             for birth_simplex in inf_births
                 push!(
                     diagram.intervals,
