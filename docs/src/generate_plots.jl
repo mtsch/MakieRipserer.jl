@@ -8,28 +8,28 @@ using SparseArrays
 # import Pkg; Pkg.add(url="https://github.com/mtsch/TopologicalDatasets.jl")
 using TopologicalDatasets
 
-torus = sample(Torus(r1=3), 1000)
+torus = sample(Torus(; r1=3), 1000)
 res = ripserer(Alpha(torus); reps=true, dim_max=2)
 
 # barcode
-bcplt = plot_barcode(res, infinity=Observable(5))
+bcplt = plot_barcode(res; infinity=Observable(5))
 save(joinpath(@__DIR__, "assets", "barcode.png"), bcplt)
 
 # diagram
-dgplt = plot(res, infinity=Observable(5))
+dgplt = plot(res; infinity=Observable(5))
 save(joinpath(@__DIR__, "assets", "diagram.png"), dgplt)
 
 # cocycle
 repplt = plot(torus)
-plot!(repplt, res[end][end-1].representative, torus)
+plot!(repplt, res[end][end - 1].representative, torus)
 save(joinpath(@__DIR__, "assets", "cocycle.png"), repplt)
 
 # app demo
 
 time = Observable(0.0)
 torus_app = MakieRipserer.app(torus; time=time)
-rng = range(0, 4.5, length=200)
-rng = vcat(rng, reverse(rng[2:end-1]))
+rng = range(0, 4.5; length=200)
+rng = vcat(rng, reverse(rng[2:(end - 1)]))
 record(torus_app, joinpath(@__DIR__, "assets", "torus.gif"), rng) do r
     println("time: ", r)
     time[] = r
@@ -54,8 +54,10 @@ end
 cat_flt = Rips(sparse(dist))
 time = Observable(-1.0)
 cat_app = MakieRipserer.app(cat_pts, cat_flt; time=time, dim_max=2)
-rng = range(minimum(Ripserer.births(cat_flt)), maximum(Ripserer.births(cat_flt)), length=200)
-rng = vcat(rng, reverse(rng[2:end-1]))
+rng = range(
+    minimum(Ripserer.births(cat_flt)), maximum(Ripserer.births(cat_flt)); length=200
+)
+rng = vcat(rng, reverse(rng[2:(end - 1)]))
 record(cat_app, joinpath(@__DIR__, "assets", "cat.gif"), rng) do r
     println("time: ", r)
     time[] = r

@@ -1,8 +1,12 @@
 function guess_infinity(diagram, infinity)
     if isnothing(infinity)
-        thresh = threshold(diagram)
+        if hasproperty(diagram, :threshold)
+            thresh = threshold(diagram)
+        else
+            thresh = nothing
+        end
         if isnothing(thresh) || ismissing(thresh) || isinf(thresh)
-            return 1.1 * maximum(Iterators.filter(isfinite, Iterators.flatten(points)))
+            return 1.1 * maximum(Iterators.filter(isfinite, Iterators.flatten(diagram)))
         else
             return thresh
         end
@@ -11,75 +15,94 @@ function guess_infinity(diagram, infinity)
     end
 end
 
+function AbstractPlotting.convert_arguments(
+    ::Type{<:Scatter}, intervals::AbstractVector{<:PersistenceInterval}
+)
+    return ([Point2f0(birth(int), death(int)) for int in intervals],)
+end
+
+@recipe(DiagramBackground) do scene
+    return Theme(; persistence=false, gapwidth=0.1)
+end
+
+function AbstractPlotting.plot!(p::DiagramBackground)
+    t_lo = p[1]
+    t_hi = p[2]
+    inf_val = p[3]
+    persistence = p[:persistence]
+    gap = @lift ($t_hi - $t_lo) * $(p[:gapwidth])
+
+    persistence_line = lift(t_lo, t_hi, gap, persistence) do t_lo, t_hi, gap, persistence
+        if persistence
+            return [Point2f0(t_lo - gap, 0), Point2f0(t_hi + gap, 0)]
+        else
+            return [Point2f0(t_lo - gap, t_lo - gap), Point2f0(t_hi + gap, t_hi + gap)]
+        end
+    end
+    lines!(p, persistence_line)
+
+    inf_line = @lift [Point2f0($t_lo - $gap, $inf_val), Point2f0($t_hi + $gap, $inf_val)]
+    return lines!(p, inf_line; linestyle=:dot, color=:gray)
+end
+
 @recipe(DiagramPlot, diagram) do scene
-    return Theme(
-        color=:gray,
-        infinity=nothing,
-        persistence=false,
-    )
+    return Theme(; palette=DEFAULT_PALETTE, color=1, infinity=nothing, persistence=false)
+end
+
+function AbstractPlotting.plot!(p::DiagramPlot)
+    diag = p[1]
+    infinity = @lift guess_infinity($diag, $(p[:infinity]))
+    points = lift(diag, infinity, p[:persistence]) do diag, infinity, persistence
+        pts = convert_arguments(Scatter, diag)[1]
+        for i in eachindex(pts)
+            if persistence
+                pts[i] -= Point2f0(0, pts[i][1])
+            end
+            if isinf(pts[i][2])
+                pts[i] = Point2f0(pts[i][1], infinity)
+            end
+        end
+        pts
+    end
+    return scatter!(p, points; color=get_color(p, p[:color]))
 end
 
 function AbstractPlotting.default_theme(
     scene::SceneLike, ::Type{<:Plot(PersistenceDiagram)}
 )
-    return Theme(
-        color=:gray,
-        infinity=nothing,
-        persistence=false,
-    )
+    return Theme(; color=:gray, infinity=nothing, persistence=false)
 end
-function AbstractPlotting.plot!(p::DiagramPlot)
-    infinity = lift(guess_infinity, p[1], p[:infinity])
-    points = lift(p[1], p[:persistence], infinity) do diag, pers, inf
-        pts = Vector{Point2f0}(undef, length(diag))
-        for i in eachindex(diag)
-            b = birth(diag[i])
-            d = min(inf, pers ? persistence(diag[i]) : death(diag[i]))
-            pts[i] = Point2f0(b, d)
-        end
-        pts
+
+function _default_colors(diags)
+    if all(d -> hasproperty(d, :dim), diags) && allunique(dim.(diags))
+        return dim.(diags) .+ 1
+    else
+        return 1:length(diags)
     end
-    scatter!(p, points; color=p[:color])
 end
-AbstractPlotting.plottype(::PersistenceDiagram) = DiagramPlot
 
 function plot_diagram!(
     scene,
     diags;
-    infinity=Observable(nothing),
+    infinity=nothing,
     persistence=false,
     palette=DEFAULT_PALETTE,
     time=Observable(nothing),
+    gapwidth=0.1,
+    colors=_default_colors(diags),
 )
-    cscheme = PlotUtils.get_colorscheme(palette)
-    lims = @lift PersistenceDiagrams.limits(diags, $infinity)
-    t_lo, t_hi, inf_val = to_value(lims)
-    infinity = @lift $lims[3]
-    width = t_hi - t_lo
-    gap = width * 0.1
-
-    # Zero persistence line
-    if persistence
-        lines!(
-            scene, [Point2f0(t_lo - gap, 0), Point2f0(t_hi + gap, 0)]
-        )
-    else
-        lines!(
-            scene, [Point2f0(t_lo - gap, t_lo - gap), Point2f0(t_hi + gap, t_hi + gap)]
-        )
+    if !(time isa Observable)
+        time = Observable(time)
     end
+    t_lo, t_hi, inf_val = PersistenceDiagrams.limits(diags, infinity)
+    width = t_hi - t_lo
+    gap = width * gapwidth
 
-    # Inf line
-    lines!(
-        scene, [Point2f0(t_lo - gap, inf_val), Point2f0(t_hi + gap, inf_val)];
-        linestyle=:dot, color=:gray,
-    )
+    diagrambackground!(scene, t_lo, t_hi, inf_val; persistence, gapwidth)
+
     for (i, diag) in enumerate(diags)
-        !isempty(diag) && plot!(
-            scene, diag;
-            infinity=infinity,
-            persistence=persistence,
-            color=cscheme[i]
+        !isempty(diag) && diagramplot!(
+            scene, diag; infinity=infinity, persistence=persistence, color=colors[i]
         )
     end
     xlims!(scene, t_lo - gap, t_hi + gap)
@@ -99,27 +122,25 @@ function plot_diagram!(
             [Point2f0(t_lo - gap, t), Point2f0(t, t), Point2f0(t, t_hi + gap)]
         end
     end
-    lines!(scene, time_line, linestyle=:dash)
+    lines!(scene, time_line; linestyle=:dash)
 
     return scene
+end
+function plot_diagram!(scene, diag::PersistenceDiagram; kwargs...)
+    return plot_diagram!(scene, (diag,); kwargs...)
 end
 plot_diagram(diags; kwargs...) = plot_diagram!(Scene(), diags; kwargs...)
 
 for T in (
     AbstractVector{<:PersistenceDiagram},
-    NTuple{<:Any, PersistenceDiagram},
+    NTuple{<:Any,PersistenceDiagram},
     PersistenceDiagram,
 )
     @eval AbstractPlotting.plot(diags::$T; kwargs...) = plot_diagram(diags; kwargs...)
 end
 
 @recipe(Bars) do scene
-    Theme(
-        color = :black,
-        ystart = 1,
-        linewidth = 3,
-        infinity = nothing,
-    )
+    Theme(; color=:black, ystart=1, linewidth=3, infinity=nothing)
 end
 function AbstractPlotting.plot!(p::Bars)
     infinity = lift(guess_infinity, p[1], p[:infinity])
@@ -137,7 +158,7 @@ function AbstractPlotting.plot!(p::Bars)
             res
         end
     end
-    linesegments!(p, bar_points, color=p[:color], linewidth=p[:linewidth])
+    return linesegments!(p, bar_points; color=p[:color], linewidth=p[:linewidth])
 end
 
 function plot_barcode!(
@@ -147,6 +168,7 @@ function plot_barcode!(
     palette=DEFAULT_PALETTE,
     linewidth=3,
     time=Observable(nothing),
+    colors=_default_colors(diags),
 )
     cscheme = PlotUtils.get_colorscheme(palette)
     lims = @lift PersistenceDiagrams.limits(diags, $infinity)
@@ -159,16 +181,19 @@ function plot_barcode!(
 
     # Inf line
     lines!(
-        scene, [Point2f0(inf_val, 1 - ygap), Point2f0(inf_val, n_bars + ygap)];
-        linestyle=:dot, color=:gray,
+        scene,
+        [Point2f0(inf_val, 1 - ygap), Point2f0(inf_val, n_bars + ygap)];
+        linestyle=:dot,
+        color=:gray,
     )
 
     ystart = 1
-    for diag in diags
+    for (i, diag) in enumerate(diags)
         if !isempty(diag)
-            color = cscheme[dim(diag) + 1]
+            color = cscheme[colors[i]]
             bars!(
-                scene, diag;
+                scene,
+                diag;
                 linewidth=linewidth,
                 color=color,
                 ystart=ystart,
@@ -189,13 +214,16 @@ function plot_barcode!(
 
     time_line = lift(time) do t
         if isnothing(t)
-            [Point2f0(0,0)]
+            [Point2f0(0, 0)]
         else
             [Point2f0(t, 1 - ygap), Point2f0(t, n_bars + ygap)]
         end
     end
-    lines!(scene, time_line, linestyle=:dash)
+    lines!(scene, time_line; linestyle=:dash)
 
     return scene
+end
+function plot_barcode!(scene, diag::PersistenceDiagram; kwargs...)
+    return plot_barcode!(scene, (diag,); kwargs...)
 end
 plot_barcode(diags; kwargs...) = plot_barcode!(Scene(), diags; kwargs...)

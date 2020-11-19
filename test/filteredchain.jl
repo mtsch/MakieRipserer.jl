@@ -11,7 +11,7 @@ using MakieRipserer:
 
 @testset "FilteredChain" begin
     @testset "From filtration" begin
-        data = [(sin(t), cos(t)) for t in range(0, 2π, length=13)[1:12]]
+        data = [(sin(t), cos(t)) for t in range(0, 2π; length=13)[1:12]]
         filtration = Rips(data)
 
         chain = FilteredChain(filtration, data)
@@ -32,8 +32,8 @@ using MakieRipserer:
     end
 end
 
-@testset "ploottype" begin
-    data = [(sin(t), cos(t)) for t in range(0, 2π, length=13)[1:12]]
+@testset "plottype" begin
+    data = [(sin(t), cos(t)) for t in range(0, 2π; length=13)[1:12]]
     sx = Simplex{2}(1, 1)
     ch = chain_element_type(typeof(sx), Mod{2})
     @test AbstractPlotting.plottype(sx, data) == ChainPlot
@@ -44,7 +44,7 @@ end
 end
 
 @testset "convert_arguments" begin
-    data = [(sin(t), cos(t)) for t in range(0, 2π, length=13)[1:12]]
+    data = [(sin(t), cos(t)) for t in range(0, 2π; length=13)[1:12]]
     sx = Simplex{2}(1, 1)
     ch = chain_element_type(typeof(sx), Mod{2})
     @test convert_arguments(ChainPlot, sx, data)[1] isa FilteredChain
@@ -55,7 +55,7 @@ end
 end
 
 @testset "No data error" begin
-    data = [(sin(t), cos(t)) for t in range(0, 2π, length=13)[1:12]]
+    data = [(sin(t), cos(t)) for t in range(0, 2π; length=13)[1:12]]
     sx = Simplex{2}(1, 1)
     ch = chain_element_type(typeof(sx), Mod{2})
     @test_throws ArgumentError AbstractPlotting.plot(sx)
