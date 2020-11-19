@@ -85,6 +85,14 @@ function AbstractPlotting.default_theme(
     )
 end
 
+function _default_colors(diags)
+    if all(d -> hasproperty(d, :dim), diags) && allunique(dim.(diags))
+        return dim.(diags) .+ 1
+    else
+        return 1:length(diags)
+    end
+end
+
 function plot_diagram!(
     scene,
     diags;
@@ -93,6 +101,7 @@ function plot_diagram!(
     palette=DEFAULT_PALETTE,
     time=Observable(nothing),
     gapwidth=0.1,
+    colors=_default_colors(diags),
 )
     if !(time isa Observable)
         time = Observable(time)
@@ -108,7 +117,7 @@ function plot_diagram!(
             scene, diag;
             infinity=infinity,
             persistence=persistence,
-            color=i,
+            color=colors[i],
         )
     end
     xlims!(scene, t_lo - gap, t_hi + gap)
@@ -131,6 +140,9 @@ function plot_diagram!(
     lines!(scene, time_line; linestyle=:dash)
 
     return scene
+end
+function plot_diagram!(scene, diag::PersistenceDiagram; kwargs...)
+    return plot_diagram!(scene, (diag,); kwargs...)
 end
 plot_diagram(diags; kwargs...) = plot_diagram!(Scene(), diags; kwargs...)
 
@@ -176,6 +188,7 @@ function plot_barcode!(
     palette=DEFAULT_PALETTE,
     linewidth=3,
     time=Observable(nothing),
+    colors=_default_colors(diags),
 )
     cscheme = PlotUtils.get_colorscheme(palette)
     lims = @lift PersistenceDiagrams.limits(diags, $infinity)
@@ -193,9 +206,9 @@ function plot_barcode!(
     )
 
     ystart = 1
-    for diag in diags
+    for (i, diag) in enumerate(diags)
         if !isempty(diag)
-            color = cscheme[dim(diag) + 1]
+            color = cscheme[colors[i]]
             bars!(
                 scene, diag;
                 linewidth=linewidth,
@@ -226,5 +239,8 @@ function plot_barcode!(
     lines!(scene, time_line, linestyle=:dash)
 
     return scene
+end
+function plot_barcode!(scene, diag::PersistenceDiagram; kwargs...)
+    return plot_barcode!(scene, (diag,); kwargs...)
 end
 plot_barcode(diags; kwargs...) = plot_barcode!(Scene(), diags; kwargs...)

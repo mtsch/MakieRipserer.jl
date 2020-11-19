@@ -36,9 +36,8 @@ include("conversion.jl")
 include("filteredchain.jl")
 include("observablechain.jl")
 include("diagrams.jl")
+include("observablediagrams.jl")
 include("app.jl")
 include("ripserer.jl")
-
-#include("reduction-visualization/chainplots.jl")
 
 end

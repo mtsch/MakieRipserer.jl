@@ -1,9 +1,6 @@
 # This file contains the recipes for plotting collections of simplices filtered by birth
 # time. This also includes filtrations.
 
-# TODO: Plotting view is broken. Uncomment views when
-# https://github.com/JuliaPlots/Makie.jl/issues/715 is resolved.
-
 """
     FilteredFaces
 
@@ -32,11 +29,8 @@ struct FilteredVertices{V, T} <: FilteredFaces
     vertices::Vector{V}
     times::Vector{T}
 end
-function FilteredVertices(flt, data)
-end
 function Base.getindex(v::FilteredVertices, t)
     i = searchsortedlast(v.times, t)
-    #return view(v.vertices, 1:i)
     return v.vertices[1:i]
 end
 
@@ -51,7 +45,6 @@ struct FilteredEdges{V, T} <: FilteredFaces
 end
 function Base.getindex(v::FilteredEdges, t)
     i = searchsortedlast(v.times, t)
-    #return view(v.edges, 1:2i)
     return v.edges[1:2i]
 end
 
@@ -67,7 +60,6 @@ struct FilteredTriangles{F, D, T} <: FilteredFaces
 end
 function Base.getindex(m::FilteredTriangles, t)
     i = searchsortedlast(m.times, t)
-    #return GeometryBasics.Mesh(m.data, view(m.faces, 1:i))
     return GeometryBasics.Mesh(m.data, m.faces[1:i])
 end
 

@@ -35,6 +35,7 @@ struct ObservableChain{V, E, T, D}
 end
 
 function ObservableChain(chain, data)
+    data = collect(data)
     return ObservableChain(
         Observable(convert_arguments(Scatter, chain, data)[1]),
         Observable(convert_arguments(LineSegments, chain, data)[1]),

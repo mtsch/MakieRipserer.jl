@@ -1,7 +1,7 @@
 using AbstractPlotting.MakieLayout
 
 function app(
-    points, filtration=Alpha(points);
+    points, F::Type=Alpha;
     palette=DEFAULT_PALETTE,
     resolution=(1600, 900),
     backgroundcolor=:white,
@@ -11,7 +11,8 @@ function app(
     ripserer_kwargs...
 )
     @info "computing diagrams"
-    diagram = ripserer(filtration; progress=true, ripserer_kwargs..., dim_max=dim_max)
+    diagram = ripserer(F, points; verbose=true, ripserer_kwargs..., dim_max=dim_max)
+    filtration = F(points)
     return app(
         points, filtration, diagram;
         palette=palette,
