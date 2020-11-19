@@ -36,7 +36,7 @@ struct ReductionPlot{
     # Plots
     scene::Scene
     layout::GridLayout
-    stream::Ref{VideoStream}
+    stream::Ref{Union{VideoStream,Nothing}}
     data_axis::LScene
     diagram_axis::L
 
@@ -91,7 +91,10 @@ function ReductionPlot(
 
     # Set up plots.
     scene, layout = layoutscene()
-    stream = Ref(VideoStream(scene; framerate))
+    stream = Ref{Union{VideoStream,Nothing}}(nothing)
+    if !debug
+        stream[] = VideoStream(scene; framerate)
+    end
 
     data_axis = layout[1:2, 1:2] = LScene(scene; title = "Data")
     plot!(data_axis, data; color = PlotUtils.get_colorscheme(palette)[1])
@@ -111,7 +114,7 @@ function ReductionPlot(
     end
 
     # The scene needs to be displayed again, or only the last axis created is shown.
-    display(scene)
+    !debug && display(scene)
 
     return ReductionPlot(
         data,
@@ -140,7 +143,7 @@ function ReductionPlot(
 end
 
 function Base.show(io::IO, plot::ReductionPlot)
-    display(plot.scene)
+    !plot.debug && display(plot.scene)
     println(io, "ReductionPlot:")
     println(io, " data:            ", summary(plot.data))
     println(io, " filtration:      ", plot.filtration)
@@ -149,7 +152,11 @@ end
 
 function Base.empty!(plot)
     plot.frames[] = 0
-    plot.stream[] = VideoStream(plot.scene; framerate = plot.framerate)
+    if !plot.debug
+        plot.stream[] = VideoStream(plot.scene; framerate = plot.framerate)
+    else
+        plot.stream[] = nothing
+    end
     plot.chain_a[] = ()
     plot.chain_b[] = ()
     plot.chain_c[] = ()
@@ -405,7 +412,7 @@ function Ripserer.ripserer(
     alg = :cohomology,
 )
     empty!(plot)
-    display(plot.stream)
+    !plot.debug && display(plot.stream)
     start_time = time_ns()
     zeroth, to_reduce, to_skip = zeroth_intervals(plot.filtration, 0, true, field, false)
     append!(plot.diagram, zeroth)

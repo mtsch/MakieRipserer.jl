@@ -32,7 +32,7 @@ using MakieRipserer:
     end
 end
 
-@testset "ploottype" begin
+@testset "plottype" begin
     data = [(sin(t), cos(t)) for t in range(0, 2π, length = 13)[1:12]]
     sx = Simplex{2}(1, 1)
     ch = chain_element_type(typeof(sx), Mod{2})
