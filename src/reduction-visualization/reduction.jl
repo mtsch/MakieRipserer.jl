@@ -1,4 +1,4 @@
-struct ReductionPlot{O1<:ObservableChain, O2<:ObservableChain, O3<:ObservableChain, D}
+struct ReductionPlot{O1<:ObservableChain,O2<:ObservableChain,O3<:ObservableChain,D}
     chain::O1
     column::O1
     birth_simplex::O2
@@ -9,11 +9,21 @@ end
 
 using ProgressMeter
 using Ripserer:
-    clear_buffer!, initialize_coboundary!, add!, finalize!, compute_intervals!, coboundary,
-    zeroth_intervals, next_matrix, CoboundaryMatrix, is_implicit, is_cohomology,
-    columns_to_reduce, BoundaryMatrix
+    clear_buffer!,
+    initialize_coboundary!,
+    add!,
+    finalize!,
+    compute_intervals!,
+    coboundary,
+    zeroth_intervals,
+    next_matrix,
+    CoboundaryMatrix,
+    is_implicit,
+    is_cohomology,
+    columns_to_reduce,
+    BoundaryMatrix
 
-struct VisualMatrix{M, R<:ReductionPlot, S, C1, C2, NT<:NamedTuple}
+struct VisualMatrix{M,R<:ReductionPlot,S,C1,C2,NT<:NamedTuple}
     matrix::M
 
     plot::R
@@ -37,9 +47,7 @@ function VisualMatrix(matrix, scene::Scene, stream, data, debug::Bool; kwargs...
     )
     buffer = eltype(matrix.chain)[]
     cobuffer = eltype(matrix.columns_to_reduce)[]
-    vmatrix = VisualMatrix(
-        matrix, plot, stream, buffer, cobuffer, debug, (;kwargs...)
-    )
+    vmatrix = VisualMatrix(matrix, plot, stream, buffer, cobuffer, debug, (; kwargs...))
     return vmatrix
 end
 
@@ -78,13 +86,18 @@ end
 function Ripserer.next_matrix(matrix::VisualMatrix, progress)
     next = next_matrix(matrix.matrix, progress)
     return VisualMatrix(
-        next, matrix.scene, matrix.stream, matrix.data, matrix.debug; matrix.kwargs...
+        next,
+        matrix.scene,
+        matrix.stream,
+        matrix.data,
+        matrix.debug;
+        matrix.kwargs...,
     )
 end
 
 function recordframes!(matrix, nframes)
     if !matrix.debug
-        for _ in 1:nframes
+        for _ = 1:nframes
             recordframe!(matrix.stream)
             if cameracontrols(matrix.scene) isa Camera3D
                 rotate_cam!(matrix.scene, Vec3(0.01, 0, 0))
@@ -133,7 +146,7 @@ function show_birth!(matrix, sx)
         show_birth!(matrix.plot, sx)
     end
 end
-function show_death!(matrix, pivot; nframes=1)
+function show_death!(matrix, pivot; nframes = 1)
     if !matrix.debug
         clear_column!(matrix.plot)
         show_death!(matrix.plot, pivot)
@@ -185,40 +198,56 @@ end
 
 function ripserer(
     data,
-    filtration=Alpha(data);
-    scene=Scene(),
-    dim_max=1,
-    modulus=2,
-    field_type=Mod{modulus},
-    alg=:cohomology,
-    debug=false,
-    framerate=6,
-    pre_chain_frames=1,
-    post_chain_frames=1,
-    col_frames=1,
-    birth_frames=1,
-    death_frames=1,
+    filtration = Alpha(data);
+    scene = Scene(),
+    dim_max = 1,
+    modulus = 2,
+    field_type = Mod{modulus},
+    alg = :cohomology,
+    debug = false,
+    framerate = 6,
+    pre_chain_frames = 1,
+    post_chain_frames = 1,
+    col_frames = 1,
+    birth_frames = 1,
+    death_frames = 1,
 )
     return ripserer(
-        Val(alg), data, filtration, scene, dim_max, field_type, debug, framerate;
-        pre_chain_frames, post_chain_frames, col_frames, birth_frames, death_frames
+        Val(alg),
+        data,
+        filtration,
+        scene,
+        dim_max,
+        field_type,
+        debug,
+        framerate;
+        pre_chain_frames,
+        post_chain_frames,
+        col_frames,
+        birth_frames,
+        death_frames,
     )
 end
 
 function ripserer(
-    ::Val{:cohomology}, data, filtration, scene, dim_max, field_type, debug, framerate;
-    kwargs...
+    ::Val{:cohomology},
+    data,
+    filtration,
+    scene,
+    dim_max,
+    field_type,
+    debug,
+    framerate;
+    kwargs...,
 )
     result = PersistenceDiagram[]
-    zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, 0, true, field_type, false
-    )
+    zeroth, to_reduce, to_skip = zeroth_intervals(filtration, 0, true, field_type, false)
     push!(result, zeroth)
     stream = VideoStream(scene; framerate)
     if dim_max > 0
         matrix = CoboundaryMatrix{true}(field_type, filtration, to_reduce, to_skip)
         vmatrix = VisualMatrix(matrix, scene, stream, data, debug; kwargs...)
-        for dim in 1:dim_max
+        for dim = 1:dim_max
             push!(result, compute_intervals!(vmatrix, 0, true, false))
             clear!(vmatrix)
             recordframes!(vmatrix, 5)
@@ -231,19 +260,24 @@ function ripserer(
 end
 
 function ripserer(
-    ::Val{:homology}, data, filtration, scene, dim_max, field_type, debug, framerate;
-    kwargs...
+    ::Val{:homology},
+    data,
+    filtration,
+    scene,
+    dim_max,
+    field_type,
+    debug,
+    framerate;
+    kwargs...,
 )
     result = PersistenceDiagram[]
-    zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, 0, true, field_type, false
-    )
+    zeroth, to_reduce, to_skip = zeroth_intervals(filtration, 0, true, field_type, false)
     push!(result, zeroth)
     stream = VideoStream(scene; framerate)
 
     if dim_max > 0
         simplices = columns_to_reduce(filtration, Iterators.flatten((to_reduce, to_skip)))
-        for dim in 1:dim_max
+        for dim = 1:dim_max
             matrix = BoundaryMatrix{false}(field_type, filtration, simplices)
             vmatrix = VisualMatrix(matrix, scene, stream, data, debug; kwargs...)
             push!(result, compute_intervals!(vmatrix, 0, true, false))
@@ -259,19 +293,24 @@ function ripserer(
 end
 
 function ripserer(
-    ::Val{:involuted}, data, filtration, scene, dim_max, field_type, debug, framerate;
-    kwargs...
+    ::Val{:involuted},
+    data,
+    filtration,
+    scene,
+    dim_max,
+    field_type,
+    debug,
+    framerate;
+    kwargs...,
 )
     result = PersistenceDiagram[]
-    zeroth, to_reduce, to_skip = zeroth_intervals(
-        filtration, 0, true, field_type, false
-    )
+    zeroth, to_reduce, to_skip = zeroth_intervals(filtration, 0, true, field_type, false)
     push!(result, zeroth)
     stream = VideoStream(scene; framerate)
 
     if dim_max > 0
         comatrix = CoboundaryMatrix{true}(field_type, filtration, to_reduce, to_skip)
-        for dim in 1:dim_max
+        for dim = 1:dim_max
             columns, inf_births = compute_death_simplices!(comatrix, progress, cutoff)
             matrix = BoundaryMatrix{implicit}(field_type, filtration, columns)
             vmatrix = VisualMatrix(matrix, scene, stream, data, debug; kwargs...)
@@ -279,7 +318,7 @@ function ripserer(
             for birth_simplex in inf_births
                 push!(
                     diagram.intervals,
-                    interval(comatrix, birth_simplex, nothing, 0, _reps(reps, dim))
+                    interval(comatrix, birth_simplex, nothing, 0, _reps(reps, dim)),
                 )
             end
             push!(result, diagram)

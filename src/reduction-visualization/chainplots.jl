@@ -9,10 +9,10 @@ function ReductionPlot(chain, column, birth_simplex, death_simplex, data, scene)
         scene,
     )
     plot!(scene, rp.data)
-    plot!(scene, rp.chain; color=2)
-    plot!(scene, rp.column; color=3)
-    plot!(scene, rp.death_simplex; color=4)
-    plot!(scene, rp.birth_simplex; color=1)
+    plot!(scene, rp.chain; color = 2)
+    plot!(scene, rp.column; color = 3)
+    plot!(scene, rp.death_simplex; color = 4)
+    plot!(scene, rp.birth_simplex; color = 1)
     return rp
 end
 

@@ -16,7 +16,7 @@ Base.firstindex(fs::FilteredFaces) = first(fs.times)
 Base.lastindex(fs::FilteredFaces) = last(fs.times)
 Base.length(fs::FilteredFaces) = length(fs.times)
 
-function Base.show(io::IO, fs::F) where F<:FilteredFaces
+function Base.show(io::IO, fs::F) where {F<:FilteredFaces}
     print(io, nameof(F), " t=[", firstindex(fs), ", ", lastindex(fs), "], n=", length(fs))
 end
 
@@ -25,7 +25,7 @@ end
 
 See: [`FilteredFaces`](@ref).
 """
-struct FilteredVertices{V, T} <: FilteredFaces
+struct FilteredVertices{V,T} <: FilteredFaces
     vertices::Vector{V}
     times::Vector{T}
 end
@@ -39,7 +39,7 @@ end
 
 See: [`FilteredFaces`](@ref).
 """
-struct FilteredEdges{V, T} <: FilteredFaces
+struct FilteredEdges{V,T} <: FilteredFaces
     edges::Vector{V}
     times::Vector{T}
 end
@@ -53,7 +53,7 @@ end
 
 See: [`FilteredFaces`](@ref).
 """
-struct FilteredTriangles{F, D, T} <: FilteredFaces
+struct FilteredTriangles{F,D,T} <: FilteredFaces
     faces::Vector{F}
     data::D
     times::Vector{T}
@@ -82,7 +82,7 @@ julia> fc = FilteredChain(simplices, data)
 FilteredChain(nv=4, ne=5, nt=2)
 
 """
-struct FilteredChain{V<:FilteredVertices, E<:FilteredEdges, T<:FilteredTriangles}
+struct FilteredChain{V<:FilteredVertices,E<:FilteredEdges,T<:FilteredTriangles}
     vertices::V
     edges::E
     triangles::T
@@ -100,7 +100,7 @@ function FilteredChain(flt::AbstractFiltration, data)
 
     triangle_sxs = sort!(collect(Ripserer.columns_to_reduce(flt, edge_sxs)))
     triangle_times = birth.(triangle_sxs)
-    triangle_faces = typeof(GLTriangleFace(1,2,3))[]
+    triangle_faces = typeof(GLTriangleFace(1, 2, 3))[]
     for sx in triangle_sxs
         vs = Ripserer.vertices(sx)
         push!(triangle_faces, GLTriangleFace(vs[1], vs[2], vs[3]))
@@ -120,13 +120,13 @@ function FilteredChain(sxs, data)
     # *_idx is used to prevent plotting faces multiple times
     vertex_times = Float64[]
     vertices = eltype(points)[]
-    vertex_idx = Dict{Int, Int}()
+    vertex_idx = Dict{Int,Int}()
     edge_times = Float64[]
     edges = eltype(points)[]
-    edge_idx = Dict{Tuple{Int, Int}, Int}()
+    edge_idx = Dict{Tuple{Int,Int},Int}()
     triangle_times = Float64[]
     triangle_faces = typeof(GLTriangleFace(1, 2, 3))[]
-    triangle_idx = Dict{Tuple{Int, Int, Int}, Int}()
+    triangle_idx = Dict{Tuple{Int,Int,Int},Int}()
 
     for sx in sxs
         sx_vertices = Ripserer.vertices(sx)
@@ -189,17 +189,17 @@ end
 
 @recipe(ChainPlot, chain) do scene
     Theme(
-        vertexcolor=1,
-        edgecolor=:black,
-        trianglecolor=2,
-        shading=false,
-        transparency=false,
-        palette=DEFAULT_PALETTE,
-        markersize=10,
-        linewidth=1,
-        triangles=true,
-        edges=true,
-        time=Inf,
+        vertexcolor = 1,
+        edgecolor = :black,
+        trianglecolor = 2,
+        shading = false,
+        transparency = false,
+        palette = DEFAULT_PALETTE,
+        markersize = 10,
+        linewidth = 1,
+        triangles = true,
+        edges = true,
+        time = Inf,
     )
 end
 
@@ -214,25 +214,28 @@ function AbstractPlotting.plot!(p::ChainPlot)
     drawn_triangles = @lift chain.triangles[$draw_triangles ? $time : -Inf]
 
     mesh!(
-        p, drawn_triangles;
-        color=get_color(p, p[:trianglecolor]),
-        shading=p[:shading],
-        transparency=p[:transparency]
+        p,
+        drawn_triangles;
+        color = get_color(p, p[:trianglecolor]),
+        shading = p[:shading],
+        transparency = p[:transparency],
     )
     linesegments!(
-        p, drawn_edges;
-        color=get_color(p, p[:edgecolor]),
-        shading=p[:shading],
-        linewidth=p[:linewidth],
+        p,
+        drawn_edges;
+        color = get_color(p, p[:edgecolor]),
+        shading = p[:shading],
+        linewidth = p[:linewidth],
     )
     scatter!(
-        p, drawn_vertices;
-        color=get_color(p, p[:vertexcolor]),
-        markersize=p[:markersize],
+        p,
+        drawn_vertices;
+        color = get_color(p, p[:vertexcolor]),
+        markersize = p[:markersize],
     )
 end
 
-function _no_data_error(arg::T) where T
+function _no_data_error(arg::T) where {T}
     throw(ArgumentError("No data provided. To plot $T, use `plot(::$T, data)"))
 end
 

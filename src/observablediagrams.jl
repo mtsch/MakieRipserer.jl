@@ -17,9 +17,8 @@ end
 function ObservableDiagram(diagrams)
     limits = PersistenceDiagrams.limits(diagrams)
     ids = reduce(vcat, fill(i, length(d)) for (i, d) in enumerate(diagrams))
-    intervals = collect(
-        Iterators.flatten(convert_arguments(Scatter, diag)[1] for diag in diagrams)
-    )
+    intervals =
+        collect(Iterators.flatten(convert_arguments(Scatter, diag)[1] for diag in diagrams))
     return ObservableDiagram(intervals, ids, limits...)
 end
 
@@ -44,13 +43,13 @@ function Base.append!(od::ObservableDiagram, intervals)
     return od
 end
 
-function Base.push!(od::ObservableDiagram, interval, id=od.ids[][end] + 1)
+function Base.push!(od::ObservableDiagram, interval, id = od.ids[][end] + 1)
     od.intervals[] = push!(od.intervals[], Point2f0(interval[1], interval[2]))
     od.ids[] = push!(od.ids[], id)
     return od
 end
 
-function edit_last!(od::ObservableDiagram, interval, id=od.ids[][end])
+function edit_last!(od::ObservableDiagram, interval, id = od.ids[][end])
     od.intervals[][end] = Point2f0(interval[1], interval[2])
     od.intervals[] = od.intervals[]
     od.ids[][end] = id
@@ -65,15 +64,13 @@ function Base.pop!(od::ObservableDiagram)
     od.ids[] = od.ids[]
 end
 
-function AbstractPlotting.default_theme(
-    scene::SceneLike, ::Type{<:Plot(ObservableDiagram)}
-)
+function AbstractPlotting.default_theme(scene::SceneLike, ::Type{<:Plot(ObservableDiagram)})
     return Theme(
-        palette=DEFAULT_PALETTE,
-        color=[],
-        infinity=nothing,
-        persistence=false,
-        gapwidth=0.1,
+        palette = DEFAULT_PALETTE,
+        color = [],
+        infinity = nothing,
+        persistence = false,
+        gapwidth = 0.1,
     )
 end
 
@@ -101,8 +98,12 @@ function AbstractPlotting.plot!(p::Plot(ObservableDiagram))
     end
     infinity = @lift isnothing($(p[:infinity])) ? $(diagram.infinity) : $(p[:infinity])
     diagrambackground!(
-        p, diagram.t_min, diagram.t_max, infinity;
-        gapwidth=p[:gapwidth], persistence=p[:persistence]
+        p,
+        diagram.t_min,
+        diagram.t_max,
+        infinity;
+        gapwidth = p[:gapwidth],
+        persistence = p[:persistence],
     )
     points = lift(transform_intervals, diagram.intervals, infinity, p[:persistence])
     scatter!(p, points; color)

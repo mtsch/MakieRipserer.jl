@@ -16,16 +16,14 @@ function guess_infinity(diagram, infinity)
 end
 
 function AbstractPlotting.convert_arguments(
-    ::Type{<:Scatter}, intervals::AbstractVector{<:PersistenceInterval}
+    ::Type{<:Scatter},
+    intervals::AbstractVector{<:PersistenceInterval},
 )
     return ([Point2f0(birth(int), death(int)) for int in intervals],)
 end
 
 @recipe(DiagramBackground) do scene
-    return Theme(
-        persistence=false,
-        gapwidth=0.1,
-    )
+    return Theme(persistence = false, gapwidth = 0.1)
 end
 
 function AbstractPlotting.plot!(p::DiagramBackground)
@@ -45,15 +43,15 @@ function AbstractPlotting.plot!(p::DiagramBackground)
     lines!(p, persistence_line)
 
     inf_line = @lift [Point2f0($t_lo - $gap, $inf_val), Point2f0($t_hi + $gap, $inf_val)]
-    lines!(p, inf_line, linestyle=:dot, color=:gray)
+    lines!(p, inf_line, linestyle = :dot, color = :gray)
 end
 
 @recipe(DiagramPlot, diagram) do scene
     return Theme(
-        palette=DEFAULT_PALETTE,
-        color=1,
-        infinity=nothing,
-        persistence=false,
+        palette = DEFAULT_PALETTE,
+        color = 1,
+        infinity = nothing,
+        persistence = false,
     )
 end
 
@@ -72,17 +70,14 @@ function AbstractPlotting.plot!(p::DiagramPlot)
         end
         return pts
     end
-    scatter!(p, points; color=get_color(p, p[:color]))
+    scatter!(p, points; color = get_color(p, p[:color]))
 end
 
 function AbstractPlotting.default_theme(
-    scene::SceneLike, ::Type{<:Plot(PersistenceDiagram)}
+    scene::SceneLike,
+    ::Type{<:Plot(PersistenceDiagram)},
 )
-    return Theme(
-        color=:gray,
-        infinity=nothing,
-        persistence=false,
-    )
+    return Theme(color = :gray, infinity = nothing, persistence = false)
 end
 
 function _default_colors(diags)
@@ -96,12 +91,12 @@ end
 function plot_diagram!(
     scene,
     diags;
-    infinity=nothing,
-    persistence=false,
-    palette=DEFAULT_PALETTE,
-    time=Observable(nothing),
-    gapwidth=0.1,
-    colors=_default_colors(diags),
+    infinity = nothing,
+    persistence = false,
+    palette = DEFAULT_PALETTE,
+    time = Observable(nothing),
+    gapwidth = 0.1,
+    colors = _default_colors(diags),
 )
     if !(time isa Observable)
         time = Observable(time)
@@ -114,10 +109,11 @@ function plot_diagram!(
 
     for (i, diag) in enumerate(diags)
         !isempty(diag) && diagramplot!(
-            scene, diag;
-            infinity=infinity,
-            persistence=persistence,
-            color=colors[i],
+            scene,
+            diag;
+            infinity = infinity,
+            persistence = persistence,
+            color = colors[i],
         )
     end
     xlims!(scene, t_lo - gap, t_hi + gap)
@@ -137,7 +133,7 @@ function plot_diagram!(
             [Point2f0(t_lo - gap, t), Point2f0(t, t), Point2f0(t, t_hi + gap)]
         end
     end
-    lines!(scene, time_line; linestyle=:dash)
+    lines!(scene, time_line; linestyle = :dash)
 
     return scene
 end
@@ -148,19 +144,14 @@ plot_diagram(diags; kwargs...) = plot_diagram!(Scene(), diags; kwargs...)
 
 for T in (
     AbstractVector{<:PersistenceDiagram},
-    NTuple{<:Any, PersistenceDiagram},
+    NTuple{<:Any,PersistenceDiagram},
     PersistenceDiagram,
 )
     @eval AbstractPlotting.plot(diags::$T; kwargs...) = plot_diagram(diags; kwargs...)
 end
 
 @recipe(Bars) do scene
-    Theme(
-        color = :black,
-        ystart = 1,
-        linewidth = 3,
-        infinity = nothing,
-    )
+    Theme(color = :black, ystart = 1, linewidth = 3, infinity = nothing)
 end
 function AbstractPlotting.plot!(p::Bars)
     infinity = lift(guess_infinity, p[1], p[:infinity])
@@ -178,17 +169,17 @@ function AbstractPlotting.plot!(p::Bars)
             res
         end
     end
-    linesegments!(p, bar_points, color=p[:color], linewidth=p[:linewidth])
+    linesegments!(p, bar_points, color = p[:color], linewidth = p[:linewidth])
 end
 
 function plot_barcode!(
     scene,
     diags;
-    infinity=Observable(nothing),
-    palette=DEFAULT_PALETTE,
-    linewidth=3,
-    time=Observable(nothing),
-    colors=_default_colors(diags),
+    infinity = Observable(nothing),
+    palette = DEFAULT_PALETTE,
+    linewidth = 3,
+    time = Observable(nothing),
+    colors = _default_colors(diags),
 )
     cscheme = PlotUtils.get_colorscheme(palette)
     lims = @lift PersistenceDiagrams.limits(diags, $infinity)
@@ -201,8 +192,10 @@ function plot_barcode!(
 
     # Inf line
     lines!(
-        scene, [Point2f0(inf_val, 1 - ygap), Point2f0(inf_val, n_bars + ygap)];
-        linestyle=:dot, color=:gray,
+        scene,
+        [Point2f0(inf_val, 1 - ygap), Point2f0(inf_val, n_bars + ygap)];
+        linestyle = :dot,
+        color = :gray,
     )
 
     ystart = 1
@@ -210,11 +203,12 @@ function plot_barcode!(
         if !isempty(diag)
             color = cscheme[colors[i]]
             bars!(
-                scene, diag;
-                linewidth=linewidth,
-                color=color,
-                ystart=ystart,
-                infinity=infinity,
+                scene,
+                diag;
+                linewidth = linewidth,
+                color = color,
+                ystart = ystart,
+                infinity = infinity,
             )
             ystart += length(diag)
         end
@@ -231,12 +225,12 @@ function plot_barcode!(
 
     time_line = lift(time) do t
         if isnothing(t)
-            [Point2f0(0,0)]
+            [Point2f0(0, 0)]
         else
             [Point2f0(t, 1 - ygap), Point2f0(t, n_bars + ygap)]
         end
     end
-    lines!(scene, time_line, linestyle=:dash)
+    lines!(scene, time_line, linestyle = :dash)
 
     return scene
 end

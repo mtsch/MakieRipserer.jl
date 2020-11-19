@@ -27,7 +27,7 @@ julia> oc
 ObservableChain(nv=4, ne=5, nt=2)
 
 """
-struct ObservableChain{V, E, T, D}
+struct ObservableChain{V,E,T,D}
     vertices::Observable{V}
     edges::Observable{E}
     triangles::Observable{T}
@@ -44,7 +44,7 @@ function ObservableChain(chain, data)
     )
 end
 function ObservableChain(data)
-    ObservableChain(Simplex{1, Int, Int}[], data)
+    ObservableChain(Simplex{1,Int,Int}[], data)
 end
 
 function Base.show(io::IO, ch::ObservableChain)
@@ -58,7 +58,7 @@ function Base.setindex!(oc::ObservableChain, chain)
     if isempty(chain)
         oc.vertices[] = eltype(oc.vertices)[]
         oc.edges[] = eltype(oc.edges)[]
-        oc.triangles[] = GeometryBasics.Mesh(oc.data, typeof(GLTriangleFace(1,2,3))[])
+        oc.triangles[] = GeometryBasics.Mesh(oc.data, typeof(GLTriangleFace(1, 2, 3))[])
     else
         oc.vertices[] = convert_arguments(Scatter, chain, oc.data)[1]
         oc.edges[] = convert_arguments(LineSegments, chain, oc.data)[1]
@@ -67,10 +67,7 @@ function Base.setindex!(oc::ObservableChain, chain)
 end
 
 function AbstractPlotting.default_theme(scene::SceneLike, ::Type{<:Plot(ObservableChain)})
-    Theme(
-        palette=DEFAULT_PALETTE,
-        color=1,
-    )
+    Theme(palette = DEFAULT_PALETTE, color = 1)
 end
 
 function AbstractPlotting.plot!(p::Plot(ObservableChain))
@@ -80,7 +77,7 @@ function AbstractPlotting.plot!(p::Plot(ObservableChain))
     edgecolor = @lift $dim_is_1 ? $color : RGB(0.0, 0.0, 0.0)
     linewidth = @lift $dim_is_1 ? 5 : 1
 
-    mesh!(p, oc.triangles; color, shading=false)
-    linesegments!(p, oc.edges; color=edgecolor, linewidth, shading=false)
+    mesh!(p, oc.triangles; color, shading = false)
+    linesegments!(p, oc.edges; color = edgecolor, linewidth, shading = false)
     scatter!(p, oc.vertices; color)
 end

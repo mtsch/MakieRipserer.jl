@@ -7,12 +7,10 @@ using PlotUtils
 using ProgressMeter
 using Ripserer
 
-using AbstractPlotting:
-    Plot, PointBased, Triangle
+using AbstractPlotting: Plot, PointBased, Triangle
 using Ripserer:
     AbstractSimplex, AbstractFiltration, AbstractRipsFiltration, AbstractChainElement
-using GeometryBasics:
-    GLTriangleFace
+using GeometryBasics: GLTriangleFace
 
 import GeometryBasics
 
