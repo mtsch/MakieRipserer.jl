@@ -44,7 +44,7 @@ function ObservableChain(chain, data)
     )
 end
 function ObservableChain(data)
-    ObservableChain(Simplex{1,Int,Int}[], data)
+    return ObservableChain(Simplex{1,Int,Int}[], data)
 end
 
 function Base.show(io::IO, ch::ObservableChain)
@@ -52,6 +52,7 @@ function Base.show(io::IO, ch::ObservableChain)
     ne = length(ch.edges[]) ÷ 2
     nt = length(ch.triangles[])
     print(io, "ObservableChain(nv=$nv, ne=$ne, nt=$nt)")
+    return nothing
 end
 
 function Base.setindex!(oc::ObservableChain, chain)
@@ -67,7 +68,7 @@ function Base.setindex!(oc::ObservableChain, chain)
 end
 
 function AbstractPlotting.default_theme(scene::SceneLike, ::Type{<:Plot(ObservableChain)})
-    Theme(palette = DEFAULT_PALETTE, color = 1)
+    return Theme(; palette=DEFAULT_PALETTE, color=1)
 end
 
 function AbstractPlotting.plot!(p::Plot(ObservableChain))
@@ -77,7 +78,7 @@ function AbstractPlotting.plot!(p::Plot(ObservableChain))
     edgecolor = @lift $dim_is_1 ? $color : RGB(0.0, 0.0, 0.0)
     linewidth = @lift $dim_is_1 ? 5 : 1
 
-    mesh!(p, oc.triangles; color, shading = false)
-    linesegments!(p, oc.edges; color = edgecolor, linewidth, shading = false)
-    scatter!(p, oc.vertices; color)
+    mesh!(p, oc.triangles; color, shading=false)
+    linesegments!(p, oc.edges; color=edgecolor, linewidth, shading=false)
+    return scatter!(p, oc.vertices; color)
 end

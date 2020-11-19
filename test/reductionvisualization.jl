@@ -6,8 +6,8 @@ using Suppressor
 
 @testset "ripserer" begin
     @suppress begin
-        data = [Point3f0(rand(), rand(), rand()) for _ = 1:50]
-        plt = ReductionPlot(data, Rips(data), debug=true)
+        data = [Point3f0(rand(), rand(), rand()) for _ in 1:50]
+        plt = ReductionPlot(data, Rips(data); debug=true)
 
         res_coh = ripserer(plt; dim_max=2)
         res_hom = ripserer(plt; dim_max=1, alg=:homology)

@@ -6,25 +6,19 @@
 for T in (Scatter, LineSegments, Mesh)
     @eval begin
         function AbstractPlotting.convert_arguments(
-            ::Type{T},
-            sx::AbstractSimplex,
-            data::AbstractVector,
+            ::Type{T}, sx::AbstractSimplex, data::AbstractVector
         ) where {T<:$T}
             return convert_arguments(T, [sx], data)
         end
 
         function AbstractPlotting.convert_arguments(
-            ::Type{T},
-            elem::AbstractChainElement,
-            data::AbstractVector,
+            ::Type{T}, elem::AbstractChainElement, data::AbstractVector
         ) where {T<:$T}
             return convert_arguments(T, [simplex(elem)], data)
         end
 
         function AbstractPlotting.convert_arguments(
-            ::Type{T},
-            chain::AbstractVector{<:AbstractChainElement},
-            data::AbstractVector,
+            ::Type{T}, chain::AbstractVector{<:AbstractChainElement}, data::AbstractVector
         ) where {T<:$T}
             return convert_arguments(T, simplex.(chain), data)
         end
@@ -32,18 +26,14 @@ for T in (Scatter, LineSegments, Mesh)
 end
 
 function AbstractPlotting.convert_arguments(
-    ::Type{T},
-    chain::AbstractVector{<:AbstractSimplex},
-    data::AbstractVector,
+    ::Type{T}, chain::AbstractVector{<:AbstractSimplex}, data::AbstractVector
 ) where {T<:Scatter}
     _data, = convert_arguments(PointBased(), data)
     points = unique!(collect(Iterators.flatten(_data[sx] for sx in chain)))
     return convert_arguments(T, points)
 end
 function AbstractPlotting.convert_arguments(
-    ::Type{T},
-    chain::AbstractVector{<:AbstractSimplex},
-    data::AbstractVector,
+    ::Type{T}, chain::AbstractVector{<:AbstractSimplex}, data::AbstractVector
 ) where {T<:LineSegments}
     _data, = convert_arguments(PointBased(), data)
     segs = NTuple{2,eltype(data)}[]
@@ -56,9 +46,7 @@ function AbstractPlotting.convert_arguments(
     return convert_arguments(T, collect(Iterators.flatten(segs)))
 end
 function AbstractPlotting.convert_arguments(
-    ::Type{T},
-    chain::AbstractVector{<:AbstractSimplex},
-    data::AbstractVector,
+    ::Type{T}, chain::AbstractVector{<:AbstractSimplex}, data::AbstractVector
 ) where {T<:Mesh}
     _data, = convert_arguments(PointBased(), data)
     faces = typeof(GeometryBasics.GLTriangleFace(1, 2, 3))[]

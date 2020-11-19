@@ -18,6 +18,7 @@ Base.length(fs::FilteredFaces) = length(fs.times)
 
 function Base.show(io::IO, fs::F) where {F<:FilteredFaces}
     print(io, nameof(F), " t=[", firstindex(fs), ", ", lastindex(fs), "], n=", length(fs))
+    return nothing
 end
 
 """
@@ -45,7 +46,7 @@ struct FilteredEdges{V,T} <: FilteredFaces
 end
 function Base.getindex(v::FilteredEdges, t)
     i = searchsortedlast(v.times, t)
-    return v.edges[1:2i]
+    return v.edges[1:(2i)]
 end
 
 """
@@ -106,7 +107,7 @@ function FilteredChain(flt::AbstractFiltration, data)
         push!(triangle_faces, GLTriangleFace(vs[1], vs[2], vs[3]))
     end
 
-    FilteredChain(
+    return FilteredChain(
         FilteredVertices(vertices, vertex_times),
         FilteredEdges(edges, edge_times),
         FilteredTriangles(triangle_faces, points, triangle_times),
@@ -163,7 +164,7 @@ function FilteredChain(sxs, data)
         end
     end
 
-    FilteredChain(
+    return FilteredChain(
         FilteredVertices(vertices, vertex_times),
         FilteredEdges(edges, edge_times),
         FilteredTriangles(triangle_faces, points, triangle_times),
@@ -185,21 +186,22 @@ function Base.show(io::IO, chain::FilteredChain)
     ne = length(chain.edges)
     nt = length(chain.triangles)
     print(io, "FilteredChain(nv=$nv, ne=$ne, nt=$nt)")
+    return nothing
 end
 
 @recipe(ChainPlot, chain) do scene
-    Theme(
-        vertexcolor = 1,
-        edgecolor = :black,
-        trianglecolor = 2,
-        shading = false,
-        transparency = false,
-        palette = DEFAULT_PALETTE,
-        markersize = 10,
-        linewidth = 1,
-        triangles = true,
-        edges = true,
-        time = Inf,
+    Theme(;
+        vertexcolor=1,
+        edgecolor=:black,
+        trianglecolor=2,
+        shading=false,
+        transparency=false,
+        palette=DEFAULT_PALETTE,
+        markersize=10,
+        linewidth=1,
+        triangles=true,
+        edges=true,
+        time=Inf,
     )
 end
 
@@ -216,27 +218,24 @@ function AbstractPlotting.plot!(p::ChainPlot)
     mesh!(
         p,
         drawn_triangles;
-        color = get_color(p, p[:trianglecolor]),
-        shading = p[:shading],
-        transparency = p[:transparency],
+        color=get_color(p, p[:trianglecolor]),
+        shading=p[:shading],
+        transparency=p[:transparency],
     )
     linesegments!(
         p,
         drawn_edges;
-        color = get_color(p, p[:edgecolor]),
-        shading = p[:shading],
-        linewidth = p[:linewidth],
+        color=get_color(p, p[:edgecolor]),
+        shading=p[:shading],
+        linewidth=p[:linewidth],
     )
-    scatter!(
-        p,
-        drawn_vertices;
-        color = get_color(p, p[:vertexcolor]),
-        markersize = p[:markersize],
+    return scatter!(
+        p, drawn_vertices; color=get_color(p, p[:vertexcolor]), markersize=p[:markersize]
     )
 end
 
 function _no_data_error(arg::T) where {T}
-    throw(ArgumentError("No data provided. To plot $T, use `plot(::$T, data)"))
+    return throw(ArgumentError("No data provided. To plot $T, use `plot(::$T, data)"))
 end
 
 for T in (
@@ -254,7 +253,7 @@ for T in (
             return (FilteredChain(x, data),)
         end
         function AbstractPlotting.plottype(x::$T)
-            _no_data_error(x)
+            return _no_data_error(x)
         end
     end
 end
